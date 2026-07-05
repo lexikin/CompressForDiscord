@@ -1,0 +1,28 @@
+# Build outputs
+bin/
+obj/
+publish/
+artifacts/
+TestResults/
+
+# Packaging outputs
+AppDir/
+.flatpak-builder/
+*.msi
+*.msix
+*.AppImage
+*.flatpak
+*.wixpdb
+
+# Signing material — NEVER commit private keys
+*.pfx
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+.DS_Store

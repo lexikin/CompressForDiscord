@@ -1,0 +1,26 @@
+<Project>
+
+  <!-- Shared metadata for every project type (csproj, vcxproj, wixproj). -->
+  <PropertyGroup>
+    <Product>Compress for Discord</Product>
+    <Authors>lexikin</Authors>
+    <Company>lexikin</Company>
+    <Copyright>Copyright (c) 2026 lexikin</Copyright>
+    <RepositoryUrl>https://github.com/lexikin/CompressForDiscord</RepositoryUrl>
+    <!-- CI stamps the real version from the git tag via -p:Version=x.y.z -->
+    <Version Condition="'$(Version)' == ''">0.1.0-dev</Version>
+  </PropertyGroup>
+
+  <!-- C# projects only — keep these away from the WiX/C++ projects. -->
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+</Project>
