@@ -30,8 +30,9 @@ cp "$REPO_ROOT/assets/icons/hicolor/256x256/apps/io.github.lexikin.CompressForDi
    "$APPDIR/usr/share/icons/hicolor/256x256/apps/compressfordiscord.png"
 cp "$REPO_ROOT/THIRD-PARTY-NOTICES.md" "$APPDIR/usr/bin/"
 
-# Fetch + verify appimagetool.
-TOOL="$OUT_DIR/appimagetool-x86_64.AppImage"
+# Fetch + verify appimagetool (kept out of $OUT_DIR's root so release globs never ship it).
+mkdir -p "$OUT_DIR/.tools"
+TOOL="$OUT_DIR/.tools/appimagetool-x86_64.AppImage"
 if [ ! -f "$TOOL" ]; then
   curl -fsSL -o "$TOOL" "$APPIMAGETOOL_URL"
 fi
