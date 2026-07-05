@@ -1,0 +1,23 @@
+{
+  "_comment": "Pinned BtbN FFmpeg build consumed by packaging/scripts/fetch-ffmpeg.ps1. PLACEHOLDER values (TODO-PIN) must be replaced with a real immutable autobuild tag + sha256 digests before the first release; the fetch script refuses to run on placeholders.",
+  "source": "https://github.com/BtbN/FFmpeg-Builds",
+  "releaseTag": "TODO-PIN",
+  "ffmpegVersion": "TODO-PIN",
+  "assets": {
+    "win-x64": {
+      "fileName": "TODO-PIN",
+      "url": "TODO-PIN",
+      "sha256": "TODO-PIN"
+    },
+    "linux-x64": {
+      "fileName": "TODO-PIN",
+      "url": "TODO-PIN",
+      "sha256": "TODO-PIN"
+    }
+  },
+  "sourceTarball": {
+    "_comment": "GPL corresponding-source offer; mirrored to our third-party-sources release.",
+    "url": "TODO-PIN",
+    "mirror": "https://github.com/lexikin/CompressForDiscord/releases/tag/third-party-sources"
+  }
+}

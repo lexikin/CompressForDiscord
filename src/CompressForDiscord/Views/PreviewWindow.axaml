@@ -1,0 +1,68 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CompressForDiscord.ViewModels"
+        xmlns:controls="using:CompressForDiscord.Views.Controls"
+        xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
+        x:Class="CompressForDiscord.Views.PreviewWindow"
+        x:DataType="vm:PreviewWindowViewModel"
+        Title="Compress for Discord"
+        Width="820" Height="560"
+        MinWidth="480" MinHeight="320"
+        WindowStartupLocation="CenterScreen">
+  <!-- The VideoView hosts a native HWND that paints over Avalonia content, so the banner
+       lives in its own grid row — never overlaid on the video. -->
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <controls:ClipboardBanner Grid.Row="0" />
+
+    <Panel Grid.Row="1" Background="#14161B">
+      <Image IsVisible="{Binding ShowImage}"
+             Source="{Binding ImageSource}"
+             Stretch="Uniform"
+             Margin="8" />
+
+      <vlc:VideoView x:Name="VideoView"
+                     IsVisible="{Binding ShowVideo}"
+                     MediaPlayer="{Binding MediaPlayer}" />
+
+      <Grid IsVisible="{Binding ShowThumbnail}">
+        <Image Source="{Binding ThumbnailSource}"
+               Stretch="Uniform"
+               Margin="8" />
+        <Button Content="▶  Open in player"
+                Command="{Binding OpenInPlayerCommand}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="15"
+                Padding="18,10" />
+        <TextBlock Text="Install VLC for inline playback"
+                   Opacity="0.55" FontSize="11"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Bottom"
+                   Margin="0,0,0,10" />
+      </Grid>
+    </Panel>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="14,10">
+      <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+        <TextBlock Text="{Binding OutputFileName}"
+                   FontWeight="SemiBold"
+                   TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding SizeText}" Opacity="0.7" FontSize="12" />
+        <TextBlock Text="{Binding FallbackNote}"
+                   IsVisible="{Binding HasFallbackNote}"
+                   Foreground="#D9A21B" FontSize="12"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+      <Button Grid.Column="1"
+              Content="Copy again"
+              Command="{Binding CopyAgainCommand}"
+              Margin="0,0,8,0"
+              VerticalAlignment="Center" />
+      <Button Grid.Column="2"
+              Content="Show in folder"
+              Command="{Binding ShowInFolderCommand}"
+              VerticalAlignment="Center" />
+    </Grid>
+  </Grid>
+</Window>

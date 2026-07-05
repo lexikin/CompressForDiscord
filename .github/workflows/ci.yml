@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5 # version comes from global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - uses: actions/cache@v4
+        id: ffmpeg-cache
+        with:
+          path: artifacts/ffmpeg
+          key: ffmpeg-${{ runner.os }}-${{ hashFiles('packaging/ffmpeg/ffmpeg.lock.json') }}
+
+      - name: Fetch ffmpeg (for integration tests)
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: ./packaging/scripts/fetch-ffmpeg.ps1 -OutDir artifacts/ffmpeg
+
+      - name: Build
+        run: dotnet build CompressForDiscord.sln -c Release
+
+      - name: Test
+        shell: pwsh
+        run: |
+          $env:FFMPEG_PATH = Join-Path $env:GITHUB_WORKSPACE 'artifacts/ffmpeg'
+          dotnet test CompressForDiscord.sln -c Release --no-build

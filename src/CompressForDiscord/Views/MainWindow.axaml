@@ -1,0 +1,52 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CompressForDiscord.ViewModels"
+        x:Class="CompressForDiscord.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Compress for Discord"
+        Width="470" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        DragDrop.AllowDrop="True">
+  <StackPanel Margin="24,20" Spacing="16">
+    <TextBlock Text="Compress for Discord" FontSize="20" FontWeight="SemiBold" />
+
+    <Border x:Name="DropZone"
+            BorderBrush="#5865F2" BorderThickness="2"
+            CornerRadius="10" MinHeight="130"
+            Background="#155865F2">
+      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
+        <TextBlock Text="Drop a video or image here"
+                   FontSize="15" FontWeight="Medium"
+                   HorizontalAlignment="Center" />
+        <TextBlock Text="It gets compressed to fit Discord and copied to your clipboard"
+                   Opacity="0.65" FontSize="12"
+                   HorizontalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <StackPanel Spacing="8">
+      <TextBlock Text="Size limit" FontWeight="SemiBold" />
+      <RadioButton GroupName="Preset" Content="10 MB — free Discord"
+                   IsChecked="{Binding IsFree10}" />
+      <RadioButton GroupName="Preset" Content="50 MB — Nitro Basic"
+                   IsChecked="{Binding IsNitroBasic50}" />
+      <RadioButton GroupName="Preset" Content="500 MB — Nitro"
+                   IsChecked="{Binding IsNitro500}" />
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <RadioButton GroupName="Preset" Content="Custom:"
+                     IsChecked="{Binding IsCustom}"
+                     VerticalAlignment="Center" />
+        <NumericUpDown Value="{Binding CustomLimitMiB}"
+                       Minimum="1" Maximum="10000" Increment="1"
+                       FormatString="0.#"
+                       Width="130"
+                       IsEnabled="{Binding IsCustom}" />
+        <TextBlock Text="MB" VerticalAlignment="Center" Opacity="0.7" />
+      </StackPanel>
+    </StackPanel>
+
+    <TextBlock Text="Tip: right-click any video or image in your file manager → Compress for Discord"
+               Opacity="0.55" FontSize="11" TextWrapping="Wrap" />
+  </StackPanel>
+</Window>

@@ -1,0 +1,23 @@
+<!-- Classic registry context-menu verbs: top-level on Windows 10, under "Show more options"
+     on Windows 11 (where the sparse-package modern menu takes over the top level).
+     Extension list must stay in sync with packaging/windows/extensions.json (sparse manifest). -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <ComponentGroup Id="ClassicContextMenu" Directory="INSTALLFOLDER">
+      <?foreach EXT in mp4;mkv;mov;avi;webm;m4v;gif;png;jpg;jpeg;webp;bmp ?>
+      <Component Id="Verb_$(var.EXT)">
+        <RegistryKey Root="HKLM"
+                     Key="Software\Classes\SystemFileAssociations\.$(var.EXT)\shell\CompressForDiscord">
+          <RegistryValue Type="string" Value="Compress for Discord" />
+          <RegistryValue Type="string" Name="Icon" Value="&quot;[INSTALLFOLDER]CompressForDiscord.exe&quot;,0" />
+          <!-- Document: multi-select launches one process per file (Explorer caps ~15). -->
+          <RegistryValue Type="string" Name="MultiSelectModel" Value="Document" />
+          <RegistryKey Key="command">
+            <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]CompressForDiscord.exe&quot; &quot;%1&quot;" />
+          </RegistryKey>
+        </RegistryKey>
+      </Component>
+      <?endforeach ?>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

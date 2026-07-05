@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.lexikin.CompressForDiscord</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Compress for Discord</name>
+  <summary>Compress videos and images to fit Discord's upload limit</summary>
+  <description>
+    <p>
+      Pick a video or image, get a copy that fits just under Discord's upload limit, already on
+      your clipboard. Videos and animated GIFs become VP9 WebM (two-pass, sized to the limit);
+      images become PNG, downscaled just enough to fit. Supports the free 10 MB tier plus
+      Nitro presets.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.lexikin.CompressForDiscord.desktop</launchable>
+  <url type="homepage">https://github.com/lexikin/CompressForDiscord</url>
+  <url type="bugtracker">https://github.com/lexikin/CompressForDiscord/issues</url>
+  <developer id="io.github.lexikin"><name>lexikin</name></developer>
+  <provides>
+    <binary>CompressForDiscord</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-07-05" />
+  </releases>
+</component>

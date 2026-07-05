@@ -1,0 +1,55 @@
+# Flatpak manifest — CI stages the self-contained publish output into artifacts/flatpak-stage
+# and builds this with flatpak-builder, then `flatpak build-bundle` produces the release asset.
+#
+# NOTE for future Flathub submission: Flathub requires building from source (dotnet SDK
+# extension + NuGet sources JSON) instead of the prebuilt `dir` payload used here.
+app-id: io.github.lexikin.CompressForDiscord
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+command: CompressForDiscord
+
+finish-args:
+  - --share=ipc
+  - --socket=x11            # Avalonia's Linux backend is X11 (XWayland covers Wayland sessions)
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=host       # right-clicked inputs are arbitrary host paths; outputs must stay host-resolvable for clipboard paste
+  - --env=VLC_PLUGIN_PATH=/app/lib/vlc/plugins
+
+modules:
+  # GUI-less libvlc for the embedded video preview (~30 min cold build, cached afterwards).
+  - name: libvlc
+    buildsystem: autotools
+    config-opts:
+      - --disable-qt
+      - --disable-skins2
+      - --disable-ncurses
+      - --disable-a52
+      - --disable-update-check
+      - --disable-vlm
+    cleanup:
+      - /bin
+      - /share/vlc
+      - /include
+      - /lib/pkgconfig
+    sources:
+      - type: archive
+        url: https://download.videolan.org/vlc/3.0.21/vlc-3.0.21.tar.xz
+        sha256: TODO-PIN
+
+  - name: compressfordiscord
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/bin && cp -a publish/. /app/bin/
+      - chmod +x /app/bin/CompressForDiscord /app/bin/ffmpeg /app/bin/ffprobe
+      - install -Dm644 io.github.lexikin.CompressForDiscord.desktop -t /app/share/applications
+      - install -Dm644 io.github.lexikin.CompressForDiscord.metainfo.xml -t /app/share/metainfo
+      - |
+        for s in 16 32 48 64 128 256 512; do
+          install -Dm644 icons/hicolor/${s}x${s}/apps/io.github.lexikin.CompressForDiscord.png \
+            /app/share/icons/hicolor/${s}x${s}/apps/io.github.lexikin.CompressForDiscord.png
+        done
+    sources:
+      - type: dir
+        path: ../../../artifacts/flatpak-stage

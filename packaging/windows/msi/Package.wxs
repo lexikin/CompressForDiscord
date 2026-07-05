@@ -1,0 +1,115 @@
+<!-- Compress for Discord MSI (WiX v6).
+     Tiers: bare (app + ffmpeg + classic verbs) → +ShellDllPath/MsixPath (Win11 modern menu)
+     → +CertFile/CertThumbprint (TrustedPeople install for the sparse package signature). -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="Compress for Discord"
+           Manufacturer="lexikin"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="7E1B4A9C-52D3-4F0E-9C4A-B2D8E6F1A305"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <MajorUpgrade Schedule="afterInstallValidate"
+                  DowngradeErrorMessage="A newer version of Compress for Discord is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="$(sys.SOURCEFILEDIR)..\..\..\assets\icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/lexikin/CompressForDiscord" />
+
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(sys.SOURCEFILEDIR)License.rtf" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Compress for Discord">
+        <Directory Id="CERTSFOLDER" Name="certs" />
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Whole self-contained publish output (ffmpeg.exe/ffprobe.exe already copied in). -->
+    <Files Include="$(var.PublishDir)\**" Directory="INSTALLFOLDER" />
+
+    <Component Directory="INSTALLFOLDER" Id="InstallDirBreadcrumb" Guid="A6D3F2C1-8B4E-4D5A-9E07-1C2B3A4D5E6F">
+      <RegistryValue Root="HKLM" Key="Software\CompressForDiscord"
+                     Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
+    </Component>
+
+    <ComponentGroupRef Id="ClassicContextMenu" />
+
+<?ifdef ShellDllPath ?>
+    <Component Directory="INSTALLFOLDER" Id="ShellDll" Guid="B7E4A3D2-9C5F-4E6B-AF18-2D3C4B5E6F70">
+      <File Source="$(var.ShellDllPath)" Name="CompressForDiscord.Shell.dll" />
+    </Component>
+<?endif ?>
+
+<?ifdef MsixPath ?>
+    <Component Directory="INSTALLFOLDER" Id="SparsePackage" Guid="C8F5B4E3-AD60-4F7C-B029-3E4D5C6F7081">
+      <File Source="$(var.MsixPath)" Name="CompressForDiscord.msix" />
+    </Component>
+
+    <!-- Register the sparse package for the installing user (the app self-heals for others);
+         unregister before files vanish on uninstall. Impersonated: runs as the user. -->
+    <SetProperty Id="RegisterSparse"
+                 Value="&quot;[INSTALLFOLDER]CompressForDiscord.exe&quot; --register-shell"
+                 Before="RegisterSparse" Sequence="execute" />
+    <CustomAction Id="RegisterSparse" DllEntry="WixQuietExec64" BinaryRef="Wix4UtilCA_X64"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
+
+    <SetProperty Id="UnregisterSparse"
+                 Value="&quot;[INSTALLFOLDER]CompressForDiscord.exe&quot; --unregister-shell"
+                 Before="UnregisterSparse" Sequence="execute" />
+    <CustomAction Id="UnregisterSparse" DllEntry="WixQuietExec64" BinaryRef="Wix4UtilCA_X64"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
+<?endif ?>
+
+<?ifdef CertFile ?>
+    <Component Directory="CERTSFOLDER" Id="OssCertificate" Guid="D9065C4F-BE71-408D-C13A-4F5E6D708192">
+      <File Source="$(var.CertFile)" Name="CompressForDiscordOSS.cer" />
+    </Component>
+
+    <!-- certutil into LocalMachine\TrustedPeople (MSIX sideload trust only — not a root CA).
+         Deferred + no-impersonate: runs as SYSTEM, which HKLM stores require. -->
+    <SetProperty Id="InstallCert"
+                 Value="&quot;[System64Folder]certutil.exe&quot; -addstore TrustedPeople &quot;[CERTSFOLDER]CompressForDiscordOSS.cer&quot;"
+                 Before="InstallCert" Sequence="execute" />
+    <CustomAction Id="InstallCert" DllEntry="WixQuietExec64" BinaryRef="Wix4UtilCA_X64"
+                  Execute="deferred" Impersonate="no" Return="check" />
+<?endif ?>
+
+<?ifdef CertThumbprint ?>
+    <SetProperty Id="RemoveCert"
+                 Value="&quot;[System64Folder]certutil.exe&quot; -delstore TrustedPeople $(var.CertThumbprint)"
+                 Before="RemoveCert" Sequence="execute" />
+    <CustomAction Id="RemoveCert" DllEntry="WixQuietExec64" BinaryRef="Wix4UtilCA_X64"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+<?endif ?>
+
+    <InstallExecuteSequence>
+<?ifdef CertFile ?>
+      <Custom Action="InstallCert" After="InstallFiles" Condition="NOT Installed OR REINSTALL" />
+<?endif ?>
+<?ifdef MsixPath ?>
+  <?ifdef CertFile ?>
+      <Custom Action="RegisterSparse" After="InstallCert" Condition="NOT Installed" />
+  <?else ?>
+      <Custom Action="RegisterSparse" After="InstallFiles" Condition="NOT Installed" />
+  <?endif ?>
+      <Custom Action="UnregisterSparse" After="InstallInitialize"
+              Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+<?endif ?>
+<?ifdef CertThumbprint ?>
+  <?ifdef MsixPath ?>
+      <Custom Action="RemoveCert" After="UnregisterSparse"
+              Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+  <?else ?>
+      <Custom Action="RemoveCert" After="InstallInitialize"
+              Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+  <?endif ?>
+<?endif ?>
+    </InstallExecuteSequence>
+
+  </Package>
+</Wix>

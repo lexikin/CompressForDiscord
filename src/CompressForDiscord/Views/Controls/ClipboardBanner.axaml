@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CompressForDiscord.ViewModels"
+             x:Class="CompressForDiscord.Views.Controls.ClipboardBanner"
+             x:DataType="vm:PreviewWindowViewModel">
+  <Border IsVisible="{Binding BannerVisible}"
+          Background="{Binding BannerBackground}">
+    <Border.Transitions>
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+      </Transitions>
+    </Border.Transitions>
+    <Grid RowDefinitions="Auto,3" ColumnDefinitions="Auto,*,Auto">
+      <TextBlock Grid.Row="0" Grid.Column="0"
+                 Text="✓"
+                 FontSize="16" FontWeight="Bold"
+                 Foreground="White"
+                 VerticalAlignment="Center"
+                 Margin="14,10,0,10" />
+      <TextBlock Grid.Row="0" Grid.Column="1"
+                 Text="{Binding BannerText}"
+                 Foreground="White"
+                 FontWeight="Medium"
+                 TextWrapping="Wrap"
+                 VerticalAlignment="Center"
+                 Margin="10,10" />
+      <Button Grid.Row="0" Grid.Column="2"
+              Command="{Binding DismissBannerCommand}"
+              Background="Transparent" BorderThickness="0"
+              Foreground="White"
+              FontSize="14"
+              Padding="10,6"
+              Margin="0,0,6,0"
+              VerticalAlignment="Center"
+              Content="✕" />
+
+      <!-- Countdown bar: shrinks toward the dismiss ✕ (anchored right); ScaleX driven from
+           code-behind because transforms live outside the logical tree (no DataContext). -->
+      <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+              x:Name="CountdownBar"
+              Background="#80FFFFFF"
+              HorizontalAlignment="Stretch"
+              RenderTransformOrigin="100%,50%" />
+    </Grid>
+  </Border>
+</UserControl>

@@ -1,0 +1,4 @@
+#!/bin/sh
+# AppImage entry point — everything lives under usr/bin (app + ffmpeg side by side).
+HERE="$(dirname "$(readlink -f "$0")")"
+exec "$HERE/usr/bin/CompressForDiscord" "$@"

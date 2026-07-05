@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Compress for Discord
+Comment=Compress videos and images to fit Discord's upload limit
+Exec=CompressForDiscord %f
+Icon=io.github.lexikin.CompressForDiscord
+Terminal=false
+Categories=AudioVideo;Utility;
+MimeType=video/mp4;video/x-matroska;video/quicktime;video/x-msvideo;video/webm;video/x-m4v;image/gif;image/png;image/jpeg;image/webp;image/bmp;

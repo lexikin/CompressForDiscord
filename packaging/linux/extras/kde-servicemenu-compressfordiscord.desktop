@@ -1,0 +1,13 @@
+# Optional KDE Dolphin context-menu entry.
+# Install: copy to ~/.local/share/kio/servicemenus/ (KF5/KF6) and make it executable.
+[Desktop Entry]
+Type=Service
+ServiceTypes=KonqPopupMenu/Plugin
+MimeType=video/mp4;video/x-matroska;video/quicktime;video/x-msvideo;video/webm;video/x-m4v;image/gif;image/png;image/jpeg;image/webp;image/bmp;
+Actions=compressForDiscord;
+X-KDE-Priority=TopLevel
+
+[Desktop Action compressForDiscord]
+Name=Compress for Discord
+Icon=io.github.lexikin.CompressForDiscord
+Exec=CompressForDiscord %f

@@ -1,0 +1,217 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.derive.outputs.semver }}
+      triple: ${{ steps.derive.outputs.triple }}
+      msix: ${{ steps.derive.outputs.msix }}
+      prerelease: ${{ steps.derive.outputs.prerelease }}
+    steps:
+      - id: derive
+        run: |
+          SEMVER="${GITHUB_REF_NAME#v}"
+          TRIPLE="${SEMVER%%-*}"
+          {
+            echo "semver=$SEMVER"
+            echo "triple=$TRIPLE"
+            echo "msix=$TRIPLE.0"
+            if [[ "$SEMVER" == *-* ]]; then echo "prerelease=true"; else echo "prerelease=false"; fi
+          } >> "$GITHUB_OUTPUT"
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+      - uses: microsoft/setup-msbuild@v2
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - uses: actions/cache@v4
+        with:
+          path: artifacts/ffmpeg
+          key: ffmpeg-${{ runner.os }}-${{ hashFiles('packaging/ffmpeg/ffmpeg.lock.json') }}
+
+      - name: Fetch ffmpeg
+        shell: pwsh
+        run: ./packaging/scripts/fetch-ffmpeg.ps1 -Rid win-x64 -OutDir artifacts/ffmpeg
+
+      - name: Publish app (self-contained win-x64)
+        run: >
+          dotnet publish src/CompressForDiscord -c Release -r win-x64 --self-contained
+          -p:Version=${{ needs.version.outputs.semver }}
+          -o artifacts/publish/win-x64
+
+      - name: Stage ffmpeg beside the exe
+        shell: pwsh
+        run: Copy-Item artifacts/ffmpeg/* artifacts/publish/win-x64/ -Force
+
+      - name: Stage third-party notices
+        shell: pwsh
+        run: Copy-Item THIRD-PARTY-NOTICES.md artifacts/publish/win-x64/ -Force
+
+      - name: Build shell extension (C++)
+        run: >
+          msbuild src/CompressForDiscord.Shell/CompressForDiscord.Shell.vcxproj
+          -p:Configuration=Release -p:Platform=x64 -restore:false
+
+      - name: Build + sign sparse MSIX
+        id: sparse
+        if: ${{ secrets.SIGNING_PFX_BASE64 != '' }}
+        shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'signing.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX_BASE64))
+          ./packaging/windows/sparse/build-sparse.ps1 `
+            -Version '${{ needs.version.outputs.msix }}' `
+            -ShellDll 'src/CompressForDiscord.Shell/x64/Release/CompressForDiscord.Shell.dll' `
+            -Pfx $pfx -PfxPassword $env:PFX_PASSWORD `
+            -Out 'artifacts/CompressForDiscord.msix'
+          Remove-Item $pfx
+          'built=true' >> $env:GITHUB_OUTPUT
+
+      - name: Build MSI
+        shell: pwsh
+        env:
+          CERT_THUMBPRINT: ${{ vars.CERT_THUMBPRINT }}
+        run: |
+          $args = @(
+            'build', 'packaging/windows/msi/CompressForDiscord.Installer.wixproj',
+            '-c', 'Release',
+            "-p:ProductVersion=${{ needs.version.outputs.triple }}",
+            "-p:PublishDir=$env:GITHUB_WORKSPACE/artifacts/publish/win-x64"
+          )
+          $shellDll = "$env:GITHUB_WORKSPACE/src/CompressForDiscord.Shell/x64/Release/CompressForDiscord.Shell.dll"
+          $msix = "$env:GITHUB_WORKSPACE/artifacts/CompressForDiscord.msix"
+          $cer = "$env:GITHUB_WORKSPACE/packaging/windows/certs/CompressForDiscordOSS.cer"
+          if ((Test-Path $msix) -and (Test-Path $shellDll)) {
+            $args += "-p:ShellDllPath=$shellDll"
+            $args += "-p:MsixPath=$msix"
+          }
+          if ((Test-Path $cer) -and $env:CERT_THUMBPRINT) {
+            $args += "-p:CertFile=$cer"
+            $args += "-p:CertThumbprint=$env:CERT_THUMBPRINT"
+          }
+          dotnet @args
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: packaging/windows/msi/bin/**/*.msi
+          if-no-files-found: error
+
+  linux:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - uses: actions/cache@v4
+        with:
+          path: artifacts/ffmpeg
+          key: ffmpeg-${{ runner.os }}-${{ hashFiles('packaging/ffmpeg/ffmpeg.lock.json') }}
+      - uses: actions/cache@v4
+        with:
+          path: .flatpak-builder
+          key: flatpak-builder-${{ hashFiles('packaging/linux/flatpak/*.yml') }}
+
+      - name: Fetch ffmpeg
+        shell: pwsh
+        run: ./packaging/scripts/fetch-ffmpeg.ps1 -Rid linux-x64 -OutDir artifacts/ffmpeg
+
+      - name: Publish app (self-contained linux-x64)
+        run: >
+          dotnet publish src/CompressForDiscord -c Release -r linux-x64 --self-contained
+          -p:Version=${{ needs.version.outputs.semver }}
+          -o artifacts/publish/linux-x64
+
+      - name: Stage ffmpeg + notices
+        run: |
+          cp artifacts/ffmpeg/ffmpeg artifacts/ffmpeg/ffprobe artifacts/publish/linux-x64/
+          cp artifacts/ffmpeg/FFMPEG-LICENSE.txt artifacts/publish/linux-x64/ || true
+          cp THIRD-PARTY-NOTICES.md artifacts/publish/linux-x64/
+          chmod +x artifacts/publish/linux-x64/CompressForDiscord artifacts/publish/linux-x64/ffmpeg artifacts/publish/linux-x64/ffprobe
+
+      - name: Build AppImage
+        env:
+          VERSION: ${{ needs.version.outputs.semver }}
+          PUBLISH_DIR: artifacts/publish/linux-x64
+          OUT_DIR: artifacts
+        run: bash packaging/linux/appimage/build-appimage.sh
+
+      - name: Build Flatpak bundle
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
+
+          # Stage the payload the manifest's `dir` source expects.
+          mkdir -p artifacts/flatpak-stage/publish
+          cp -a artifacts/publish/linux-x64/. artifacts/flatpak-stage/publish/
+          cp packaging/linux/flatpak/io.github.lexikin.CompressForDiscord.desktop artifacts/flatpak-stage/
+          cp packaging/linux/flatpak/io.github.lexikin.CompressForDiscord.metainfo.xml artifacts/flatpak-stage/
+          cp -a assets/icons artifacts/flatpak-stage/
+
+          flatpak-builder --user --force-clean --repo=artifacts/fp-repo build-dir \
+            packaging/linux/flatpak/io.github.lexikin.CompressForDiscord.yml
+          flatpak build-bundle artifacts/fp-repo \
+            "artifacts/CompressForDiscord-${{ needs.version.outputs.semver }}.flatpak" \
+            io.github.lexikin.CompressForDiscord
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux
+          path: |
+            artifacts/*.AppImage
+            artifacts/*.flatpak
+          if-no-files-found: error
+
+  release:
+    needs: [version, windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          cd dist
+          find . -type f -exec mv {} . \; 2>/dev/null || true
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EXTRA=""
+          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then EXTRA="--prerelease"; fi
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Compress for Discord $GITHUB_REF_NAME" \
+            --generate-notes $EXTRA

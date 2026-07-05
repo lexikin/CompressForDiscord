@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CompressForDiscord.ViewModels"
+        x:Class="CompressForDiscord.Views.ErrorDialog"
+        x:DataType="vm:ErrorDialogViewModel"
+        Title="Compress for Discord"
+        Width="480" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen">
+  <StackPanel Margin="20,16" Spacing="12">
+    <TextBlock Text="{Binding Headline}" FontSize="16" FontWeight="SemiBold" />
+    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+    <Expander Header="Technical details" IsVisible="{Binding HasDetails}">
+      <Border Background="#14161B" CornerRadius="4" Padding="8" MaxHeight="200">
+        <ScrollViewer>
+          <SelectableTextBlock Text="{Binding Details}"
+                               FontFamily="Cascadia Mono,Consolas,DejaVu Sans Mono,monospace"
+                               FontSize="11"
+                               TextWrapping="Wrap" />
+        </ScrollViewer>
+      </Border>
+    </Expander>
+    <Grid ColumnDefinitions="*,Auto,Auto">
+      <Button Grid.Column="1"
+              Content="Copy details"
+              IsVisible="{Binding HasDetails}"
+              Click="OnCopyDetailsClick"
+              Margin="0,0,8,0" />
+      <Button Grid.Column="2" Content="Close" Click="OnCloseClick" />
+    </Grid>
+  </StackPanel>
+</Window>

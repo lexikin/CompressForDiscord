@@ -1,0 +1,4 @@
+{
+  "_comment": "Single source for the Win11 sparse-package file types (build-sparse.ps1 stamps these into the AppxManifest). Must match the <?foreach EXT ...?> list in packaging/windows/msi/ContextMenu.wxs.",
+  "extensions": ["mp4", "mkv", "mov", "avi", "webm", "m4v", "gif", "png", "jpg", "jpeg", "webp", "bmp"]
+}

@@ -1,0 +1,21 @@
+<Project Sdk="WixToolset.Sdk/6.0.1">
+
+  <PropertyGroup>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">0.1.0</ProductVersion>
+    <PublishDir Condition="'$(PublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\..\artifacts\publish\win-x64</PublishDir>
+    <OutputName>CompressForDiscord-$(ProductVersion)-x64</OutputName>
+    <SuppressSpecificWarnings>1118</SuppressSpecificWarnings>
+    <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(PublishDir)</DefineConstants>
+    <!-- Optional pieces — CI passes these; a bare local build skips them. -->
+    <DefineConstants Condition="'$(ShellDllPath)' != ''">$(DefineConstants);ShellDllPath=$(ShellDllPath)</DefineConstants>
+    <DefineConstants Condition="'$(MsixPath)' != ''">$(DefineConstants);MsixPath=$(MsixPath)</DefineConstants>
+    <DefineConstants Condition="'$(CertFile)' != ''">$(DefineConstants);CertFile=$(CertFile)</DefineConstants>
+    <DefineConstants Condition="'$(CertThumbprint)' != ''">$(DefineConstants);CertThumbprint=$(CertThumbprint)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="6.0.1" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="6.0.1" />
+  </ItemGroup>
+
+</Project>
