@@ -34,6 +34,7 @@
 
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" /> <!-- required by AllowExternalContent -->
   </Capabilities>
 
   <Applications>
@@ -48,10 +49,11 @@
       <Extensions>
         <com:Extension Category="windows.comServer">
           <com:ComServer>
-            <com:InProcessServer>
-              <com:Path>CompressForDiscord.Shell.dll</com:Path>
-              <com:Class Id="__CLSID__" ThreadingModel="STA" />
-            </com:InProcessServer>
+            <!-- Shell extensions load out-of-proc via the DllHost surrogate; the DLL path
+                 rides on the Class element (same shape as vscode-explorer-command). -->
+            <com:SurrogateServer DisplayName="Compress for Discord Shell Extension">
+              <com:Class Id="__CLSID__" Path="CompressForDiscord.Shell.dll" ThreadingModel="STA" />
+            </com:SurrogateServer>
           </com:ComServer>
         </com:Extension>
         <desktop4:Extension Category="windows.fileExplorerContextMenus">
