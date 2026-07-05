@@ -8,6 +8,9 @@
     <ApplicationIcon>..\..\assets\icon.ico</ApplicationIcon>
     <!-- Avalonia's Windows OLE clipboard/drag-drop needs built-in COM interop. -->
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <!-- We only ship win-x64; drop the x86/arm64 libvlc payloads (~180 MB). -->
+    <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
+    <VlcWindowsArm64Enabled>false</VlcWindowsArm64Enabled>
   </PropertyGroup>
 
   <ItemGroup>

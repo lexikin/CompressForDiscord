@@ -69,13 +69,16 @@ jobs:
           -p:Configuration=Release -p:Platform=x64 -restore:false
 
       - name: Build + sign sparse MSIX
-        id: sparse
-        if: ${{ secrets.SIGNING_PFX_BASE64 != '' }}
         shell: pwsh
         env:
+          # secrets aren't allowed in step-level `if` — gate inside the script instead
           PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
           PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
         run: |
+          if (-not $env:PFX_BASE64) {
+            Write-Host 'SIGNING_PFX_BASE64 not set — skipping the sparse package (MSI ships classic menu only).'
+            exit 0
+          }
           $pfx = Join-Path $env:RUNNER_TEMP 'signing.pfx'
           [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX_BASE64))
           ./packaging/windows/sparse/build-sparse.ps1 `
@@ -84,7 +87,6 @@ jobs:
             -Pfx $pfx -PfxPassword $env:PFX_PASSWORD `
             -Out 'artifacts/CompressForDiscord.msix'
           Remove-Item $pfx
-          'built=true' >> $env:GITHUB_OUTPUT
 
       - name: Build MSI
         shell: pwsh
