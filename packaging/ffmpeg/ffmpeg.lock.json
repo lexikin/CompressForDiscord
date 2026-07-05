@@ -1,23 +1,24 @@
 {
-  "_comment": "Pinned BtbN FFmpeg build consumed by packaging/scripts/fetch-ffmpeg.ps1. PLACEHOLDER values (TODO-PIN) must be replaced with a real immutable autobuild tag + sha256 digests before the first release; the fetch script refuses to run on placeholders.",
+  "_comment": "Pinned BtbN FFmpeg build consumed by packaging/scripts/fetch-ffmpeg.ps1. sha256 values come from the GitHub release asset digests; the fetch script verifies before extracting.",
   "source": "https://github.com/BtbN/FFmpeg-Builds",
-  "releaseTag": "TODO-PIN",
-  "ffmpegVersion": "TODO-PIN",
+  "releaseTag": "autobuild-2026-07-05-15-08",
+  "ffmpegVersion": "n8.1.2-21-gce3c09c101",
   "assets": {
     "win-x64": {
-      "fileName": "TODO-PIN",
-      "url": "TODO-PIN",
-      "sha256": "TODO-PIN"
+      "fileName": "ffmpeg-n8.1.2-21-gce3c09c101-win64-gpl-8.1.zip",
+      "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-07-05-15-08/ffmpeg-n8.1.2-21-gce3c09c101-win64-gpl-8.1.zip",
+      "sha256": "f1ba093e7c2e3a2759b2c25f2ba87ac9ad583777bbc17df4b7ec206a8414e328"
     },
     "linux-x64": {
-      "fileName": "TODO-PIN",
-      "url": "TODO-PIN",
-      "sha256": "TODO-PIN"
+      "fileName": "ffmpeg-n8.1.2-21-gce3c09c101-linux64-gpl-8.1.tar.xz",
+      "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-07-05-15-08/ffmpeg-n8.1.2-21-gce3c09c101-linux64-gpl-8.1.tar.xz",
+      "sha256": "c873efabfc36d5de93354923c6edecdc7dbf296b82035f211d446f8be9e6eec3"
     }
   },
   "sourceTarball": {
-    "_comment": "GPL corresponding-source offer; mirrored to our third-party-sources release.",
-    "url": "TODO-PIN",
+    "_comment": "GPL corresponding-source offer. Binaries build from ffmpeg git commit ce3c09c101 on the 8.1 release branch; nearest release tarball plus the exact commit reference are mirrored on our third-party-sources release.",
+    "url": "https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz",
+    "commit": "ce3c09c101",
     "mirror": "https://github.com/lexikin/CompressForDiscord/releases/tag/third-party-sources"
   }
 }

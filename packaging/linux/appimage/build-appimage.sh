@@ -9,10 +9,10 @@ OUT_DIR="${OUT_DIR:-artifacts}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-# Pinned appimagetool (AppImageKit release 13). PIN the sha256 before first release —
-# the script refuses to run unpinned unless APPIMAGETOOL_SHA256 is provided.
-APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage"
-APPIMAGETOOL_SHA256="${APPIMAGETOOL_SHA256:-TODO-PIN}"
+# Pinned appimagetool (the maintained AppImage/appimagetool repo — AppImageKit's copies are
+# marked obsolete). sha256 from the GitHub release asset digest.
+APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage"
+APPIMAGETOOL_SHA256="${APPIMAGETOOL_SHA256:-ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0}"
 
 APPDIR="$OUT_DIR/AppDir"
 rm -rf "$APPDIR"
