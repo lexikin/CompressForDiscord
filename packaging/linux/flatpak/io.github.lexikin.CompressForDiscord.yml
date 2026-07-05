@@ -21,6 +21,11 @@ modules:
   # GUI-less libvlc for the embedded video preview (~30 min cold build, cached afterwards).
   - name: libvlc
     buildsystem: autotools
+    build-options:
+      env:
+        # VLC's configure probes for a "native" build compiler and gives up inside the
+        # flatpak sandbox without this.
+        BUILDCC: gcc -std=gnu99
     config-opts:
       - --disable-qt
       - --disable-skins2
@@ -28,6 +33,10 @@ modules:
       - --disable-a52
       - --disable-update-check
       - --disable-vlm
+      # Not present in the freedesktop SDK; none are needed for embedded playback.
+      - --disable-lua
+      - --disable-chromecast
+      - --disable-protobuf
     cleanup:
       - /bin
       - /share/vlc
