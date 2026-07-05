@@ -58,6 +58,29 @@ modules:
       - --disable-lua
       - --disable-chromecast
       - --disable-protobuf
+      # VLC 3.0.x predates several SDK library majors (TagLib 2 broke the build at rc.3);
+      # our muted looping preview needs none of these optional plugins, so disable the lot
+      # rather than discovering one API drift per 65-minute CI cycle.
+      - --disable-taglib
+      - --disable-matroska
+      - --disable-libva
+      - --disable-dvdnav
+      - --disable-dvdread
+      - --disable-bluray
+      - --disable-smbclient
+      - --disable-sftp
+      - --disable-nfs
+      - --disable-upnp
+      - --disable-microdns
+      - --disable-mod
+      - --disable-mpc
+      - --disable-gme
+      - --disable-chromaprint
+      - --disable-goom
+      - --disable-projectm
+      - --disable-archive
+      - --disable-live555
+      - --disable-notify
     cleanup:
       - /bin
       - /share/vlc
