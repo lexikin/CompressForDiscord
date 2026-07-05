@@ -203,7 +203,9 @@ jobs:
       - name: Checksums
         run: |
           cd dist
-          find . -type f -exec mv {} . \; 2>/dev/null || true
+          # Artifacts may arrive in nested folders (e.g. the MSI's bin/Release) — flatten fully.
+          find . -mindepth 2 -type f -exec mv -t . {} +
+          find . -mindepth 1 -type d -exec rm -rf {} +
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
