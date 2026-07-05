@@ -18,6 +18,27 @@ finish-args:
   - --env=VLC_PLUGIN_PATH=/app/lib/vlc/plugins
 
 modules:
+  # Private FFmpeg 4.4 *libraries* for libvlc: VLC 3.0.x still uses the pre-FFmpeg-7 channel
+  # API (AVCodecContext.channels), so it cannot build against the SDK's FFmpeg 7+ headers.
+  # Decode-only, LGPL configuration; our own ffmpeg CLI in /app/bin is unrelated to these libs.
+  - name: ffmpeg4-libs
+    buildsystem: autotools
+    config-opts:
+      - --disable-programs
+      - --disable-doc
+      - --disable-encoders
+      - --disable-muxers
+      - --disable-static
+      - --enable-shared
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - /share/ffmpeg
+    sources:
+      - type: archive
+        url: https://ffmpeg.org/releases/ffmpeg-4.4.8.tar.xz
+        sha256: c73848c4ae283d9eaee7be3b276affbc3543380483555500d0dd2c9b7e1c39c3
+
   # GUI-less libvlc for the embedded video preview (~30 min cold build, cached afterwards).
   - name: libvlc
     buildsystem: autotools
