@@ -8,7 +8,7 @@
   <description>
     <p>
       Pick a video or image, get a copy that fits just under Discord's upload limit, already on
-      your clipboard. Videos and animated GIFs become VP9 WebM (two-pass, sized to the limit);
+      your clipboard. Videos and animated GIFs become H.264 MP4 (two-pass, sized to the limit);
       images become PNG, downscaled just enough to fit. Supports the free 10 MB tier plus
       Nitro presets.
     </p>

@@ -5,14 +5,14 @@ Run before tagging a release. Platforms: **Windows 10**, **Windows 11 VM**, **Ub
 
 ## Core compression flow
 
-- [ ] Large mp4 (>50 MB) → right-click → Compress for Discord → progress advances (pass 1 → pass 2, ETA shown) → preview opens → **Ctrl+V into Discord uploads the webm**
+- [ ] Large mp4 (>50 MB) → right-click → Compress for Discord → progress advances (pass 1 → pass 2, ETA shown) → preview opens → **Ctrl+V into Discord uploads the mp4**
 - [ ] 4K 60 fps clip → output is downscaled + capped at 30 fps, still under limit
-- [ ] Animated GIF → webm; plays looping & muted in preview
+- [ ] Animated GIF → mp4; plays looping & muted in preview
 - [ ] Static GIF → png
 - [ ] 20 MP photo (jpg) → png under limit, still sharp enough
 - [ ] Screen recording with no audio track → compresses without error
-- [ ] Already-small .webm (VP9) → "Already fits" skip; original goes to clipboard
-- [ ] Small .mp4 → still converted (wrong container, no skip)
+- [ ] Already-small .webm (VP9) or .mp4 (H.264) → "Already fits" skip; original goes to clipboard
+- [ ] Already-small iPhone HEVC video → still converted (Discord can't play HEVC inline)
 - [ ] 2-hour video at 10 MB → friendly "can't fit" dialog naming the max duration + preset suggestion
 
 ## Cancel & errors
@@ -28,7 +28,7 @@ Run before tagging a release. Platforms: **Windows 10**, **Windows 11 VM**, **Ub
 - [ ] `Ünïcode video (final) #2.mp4` → compresses; clipboard paste works; output name keeps the unicode
 - [ ] File in a path with spaces → works
 - [ ] Read-only folder / UNC share input → output lands in Downloads, preview shows amber note
-- [ ] Existing `x.discord.webm` → new file gets ` (2)` suffix
+- [ ] Existing `x.discord.mp4` → new file gets ` (2)` suffix
 
 ## Clipboard
 

@@ -10,8 +10,8 @@ namespace CompressForDiscord.Services.Planning;
 internal static class OutputNamer
 {
     /// <summary>
-    /// Yields "video.discord.webm", "video.discord (2).webm", "video.discord (3).webm", …
-    /// for input file name "video.mp4" and target extension "webm".
+    /// Yields "video.discord.mp4", "video.discord (2).mp4", "video.discord (3).mp4", …
+    /// for input file name "video.mkv" and target extension "mp4".
     /// </summary>
     internal static IEnumerable<string> CandidateFileNames(string inputFileName, string targetExtension)
     {

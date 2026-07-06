@@ -26,6 +26,9 @@ internal sealed class CompressionOrchestrator(
 {
     private static readonly string[] SkippableWebmCodecs = ["vp8", "vp9", "av1"];
 
+    // hevc deliberately absent: Discord's Chromium-based clients don't play HEVC inline.
+    private static readonly string[] SkippableMp4Codecs = ["h264", "av1"];
+
     internal static string JobTempRoot =>
         Path.Combine(Path.GetTempPath(), "CompressForDiscord");
 
@@ -59,7 +62,7 @@ internal sealed class CompressionOrchestrator(
             IMediaCompressor compressor = media.Kind == MediaKind.StaticImage
                 ? imageCompressor
                 : videoCompressor;
-            string targetExtension = media.Kind == MediaKind.StaticImage ? "png" : "webm";
+            string targetExtension = media.Kind == MediaKind.StaticImage ? "png" : "mp4";
 
             var output = await compressor.CompressAsync(media, limitBytes, jobTempDir, progress, ct);
 
@@ -77,7 +80,7 @@ internal sealed class CompressionOrchestrator(
         }
     }
 
-    /// <summary>Already under the limit and already the right container → just hand back the original.</summary>
+    /// <summary>Already under the limit and already Discord-friendly → just hand back the original.</summary>
     private static bool CanSkip(MediaInfo media, long limitBytes)
     {
         if (media.FileSizeBytes > limitBytes)
@@ -89,10 +92,9 @@ internal sealed class CompressionOrchestrator(
         return media.Kind switch
         {
             MediaKind.StaticImage => extension == ".png",
-            MediaKind.Video or MediaKind.AnimatedImage =>
-                extension == ".webm" &&
-                media.Video is not null &&
-                Array.IndexOf(SkippableWebmCodecs, media.Video.CodecName) >= 0,
+            MediaKind.Video or MediaKind.AnimatedImage when media.Video is not null =>
+                (extension == ".webm" && Array.IndexOf(SkippableWebmCodecs, media.Video.CodecName) >= 0) ||
+                (extension == ".mp4" && Array.IndexOf(SkippableMp4Codecs, media.Video.CodecName) >= 0),
             _ => false,
         };
     }

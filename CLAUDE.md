@@ -1,8 +1,8 @@
 # Compress for Discord — dev notes
 
 Right-click media file → compress to just under Discord's upload limit → copy result file to
-clipboard → preview window. C# / .NET 10 / Avalonia 11. Videos+animated GIFs → VP9/Opus WebM
-(two-pass); static images → PNG (downscale search).
+clipboard → preview window. C# / .NET 10 / Avalonia 11. Videos+animated GIFs → H.264/AAC MP4
+(two-pass x264, speed-first); static images → PNG (downscale search).
 
 ## Commands
 
@@ -26,13 +26,12 @@ pwsh packaging/scripts/make-icons.ps1         # regenerate committed icon assets
   API values; verify empirically before changing.
 - ffmpeg `-progress` quirk: `out_time_ms` is **microseconds**; `out_time_us` is preferred.
   PNG `-compression_level` is 0–9 (not 0–100).
-- libvpx speed dial (measured 2026-07-06, 6-core box, 15 s 1080p30 @ ~5.3 Mbps): pass 2
-  cu2=76 s/VMAF 96.9, cu4=44 s/96.2, **cu5=57 s/96.0 — slower AND worse than cu4** (good-deadline
-  clamp quirk; pass 1 at cu5 is 7x slower than cu4 too). Both passes use cpu-used 4; don't
-  "optimize" to 5.
-- Two-pass VP9: the `-vf` chain must be byte-identical across passes; `-passlogfile` lives in
+- Video encoder is x264 `-preset veryfast`, both passes — chosen 2026-07-06 when the user
+  prioritized speed over quality (VP9 history & measurements: commit 5165ded). x264 auto-lightens
+  pass 1; never add `-slow-firstpass`. Planner floors are x264-tuned (0.022 bpp, 50 kbps min).
+- Two-pass x264: the `-vf` chain must be byte-identical across passes; `-passlogfile` lives in
   the per-job temp dir (`%TEMP%/CompressForDiscord/<guid>`), never next to the source.
-  Same-chain retries skip pass 1 (stats are bitrate-independent).
+  Same-chain retries skip pass 1 (rate control rescales stats to any target bitrate).
 - `VideoView` (LibVLCSharp) is a NativeControlHost: **nothing can overlay it** (banner is its
   own grid row); attach `MediaPlayer` only after `Window.Opened`; detach + `Stop()`/`Dispose()`
   on a thread-pool thread (UI-thread stop deadlocks).

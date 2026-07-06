@@ -21,7 +21,7 @@ public sealed class VideoPlannerTests
             Audio: audio ? new AudioStreamInfo("aac", 2) : null);
 
     [Fact]
-    public void SixtySecond1080p_At10MiB_KeepsNativeResolutionAndStereoAudio()
+    public void SixtySecond1080p_At10MiB_DropsTo720pWithStereoAudio()
     {
         var result = VideoPlanner.Plan(Media(), TenMiB, attempt: 0);
 
@@ -31,8 +31,9 @@ public sealed class VideoPlannerTests
         Assert.Equal(1253, plan.VideoKbps);
         Assert.Equal(96, plan.AudioKbps);
         Assert.Equal(2, plan.AudioChannels);
-        Assert.Equal(1920, plan.Width);
-        Assert.Equal(1080, plan.Height);
+        // 1253 kbps at 1080p30 is 0.020 bits/pixel — under the x264 floor (0.022) → 720p rung.
+        Assert.Equal(1280, plan.Width);
+        Assert.Equal(720, plan.Height);
         Assert.Null(plan.Fps); // source 30 fps is under the cap — no fps filter
     }
 
@@ -59,7 +60,7 @@ public sealed class VideoPlannerTests
     }
 
     [Fact]
-    public void TenMinute4K60_At10MiB_DropsTo360p24AndMonoAudio()
+    public void TenMinute4K60_At10MiB_DropsTo240p24AndMonoAudio()
     {
         var media = Media(width: 3840, height: 2160, fps: 59.94, duration: 600);
 
@@ -67,21 +68,23 @@ public sealed class VideoPlannerTests
 
         Assert.Equal(48, plan.AudioKbps);
         Assert.Equal(1, plan.AudioChannels);
-        Assert.Equal(640, plan.Width);
-        Assert.Equal(360, plan.Height);
+        // ~85 kbps video: 360p24 would be 0.015 bits/pixel — under the x264 floor → 240p rung.
+        Assert.Equal(426, plan.Width);
+        Assert.Equal(240, plan.Height);
         Assert.Equal(24, plan.Fps);
     }
 
     [Fact]
     public void PortraitVideo_LaddersOnShortSide()
     {
-        // 5 MiB / 60 s leaves ~578 kbps video: too thin for 1080x1920, fine for 720x1280.
+        // 5 MiB / 60 s leaves ~578 kbps video: 0.021 bits/pixel at 720x1280 is still under
+        // the x264 floor (0.022), so the ladder lands on the 480 short-side rung.
         var media = Media(width: 1080, height: 1920, fps: 30, duration: 60);
 
         var plan = VideoPlanner.Plan(media, 5 * 1024 * 1024, attempt: 0).Plan!;
 
-        Assert.Equal(720, plan.Width);
-        Assert.Equal(1280, plan.Height);
+        Assert.Equal(480, plan.Width);
+        Assert.Equal(852, plan.Height); // 1920 × (480/1080) = 853.3 → floored to even
     }
 
     [Fact]
@@ -97,7 +100,7 @@ public sealed class VideoPlannerTests
     [Fact]
     public void VeryTightBudget_StripsAudioBeforeGivingUp()
     {
-        // ~60 kbps total: with audio the video floor (40 kbps) is unreachable; without it, it isn't.
+        // ~60 kbps total: with audio the video floor (50 kbps) is unreachable; without it, it isn't.
         var result = VideoPlanner.Plan(Media(duration: 1356), TenMiB, attempt: 0);
 
         var plan = result.Plan!;

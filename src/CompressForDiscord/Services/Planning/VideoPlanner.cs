@@ -16,11 +16,14 @@ internal static class VideoPlanner
 
     internal static int MaxAttempts => Margins.Length;
 
-    /// <summary>Below this video bitrate VP9 output is unusable mush — refuse instead.</summary>
-    internal const int MinVideoKbps = 40;
+    /// <summary>Below this video bitrate x264 output is unusable mush — refuse instead.</summary>
+    internal const int MinVideoKbps = 50;
 
-    /// <summary>VP9 quality floor used to pick the resolution rung.</summary>
-    internal const double MinBitsPerPixel = 0.015;
+    /// <summary>
+    /// Quality floor used to pick the resolution rung. Tuned for x264 veryfast, which needs
+    /// roughly 40 % more bits per pixel than VP9 did for comparable quality.
+    /// </summary>
+    internal const double MinBitsPerPixel = 0.022;
 
     /// <summary>Resolution ladder expressed as the display *short* side (portrait-aware).</summary>
     internal static readonly int[] ShortSideRungs = [2160, 1440, 1080, 720, 480, 360, 240];

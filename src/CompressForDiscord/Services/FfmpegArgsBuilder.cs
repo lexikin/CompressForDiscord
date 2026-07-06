@@ -35,7 +35,7 @@ internal static class FfmpegArgsBuilder
         args.AddRange(["-map", "0:v:0", "-map_metadata", "-1", "-sn", "-dn"]);
         args.AddRange(["-vf", BuildVideoFilterChain(plan)]);
         args.AddRange(RateControlArgs(plan));
-        args.AddRange(["-deadline", "good", "-cpu-used", "4", "-row-mt", "1", "-tile-columns", "2", "-g", "240"]);
+        args.AddRange(["-preset", "veryfast"]);
         args.AddRange(["-pass", "1", "-passlogfile", passLogPrefix]);
         args.AddRange(["-an", "-f", "null", nullSink]);
         return [.. args];
@@ -54,16 +54,13 @@ internal static class FfmpegArgsBuilder
         // The -vf chain must be byte-identical to pass 1 or the stats are useless.
         args.AddRange(["-vf", BuildVideoFilterChain(plan)]);
         args.AddRange(RateControlArgs(plan));
-        // cpu-used 4 measured 1.7x faster than 2 for -0.7 VMAF (96.9→96.2) — and 5 is
-        // paradoxically SLOWER and worse than 4 in libvpx's good deadline. Keep 4.
-        args.AddRange(["-deadline", "good", "-cpu-used", "4", "-row-mt", "1", "-tile-columns", "2", "-g", "240"]);
-        args.AddRange(["-auto-alt-ref", "1", "-lag-in-frames", "25"]);
+        args.AddRange(["-preset", "veryfast"]);
         args.AddRange(["-pass", "2", "-passlogfile", passLogPrefix]);
 
         if (plan.AudioKbps is int audioKbps)
         {
             args.AddRange([
-                "-c:a", "libopus",
+                "-c:a", "aac",
                 "-b:a", Invariant($"{audioKbps}k"),
                 "-ac", Invariant($"{plan.AudioChannels}"),
             ]);
@@ -73,7 +70,8 @@ internal static class FfmpegArgsBuilder
             args.Add("-an");
         }
 
-        args.AddRange(["-f", "webm", output]);
+        // faststart relocates the moov atom so Discord/browsers can stream from byte 0.
+        args.AddRange(["-movflags", "+faststart", "-f", "mp4", output]);
         return [.. args];
     }
 
@@ -121,12 +119,15 @@ internal static class FfmpegArgsBuilder
     private static List<string> CommonEncodeArgs(string input) =>
         ["-y", "-loglevel", "error", "-progress", "pipe:1", "-i", input];
 
+    // x264 two-pass ABR with a gentle VBV cap: accurate size targeting at veryfast speed.
+    // "-preset veryfast" was chosen for speed-per-quality at a FIXED SIZE; x264 additionally
+    // auto-lightens pass 1 analysis (never add -slow-firstpass).
     private static List<string> RateControlArgs(VideoPlan plan) =>
     [
-        "-c:v", "libvpx-vp9",
+        "-c:v", "libx264",
         "-b:v", Invariant($"{plan.VideoKbps}k"),
-        "-minrate", Invariant($"{plan.VideoKbps / 2}k"),
-        "-maxrate", Invariant($"{plan.VideoKbps * 145 / 100}k"),
+        "-maxrate", Invariant($"{plan.VideoKbps * 150 / 100}k"),
+        "-bufsize", Invariant($"{plan.VideoKbps * 2}k"),
     ];
 
     private static string Invariant(FormattableString value) =>

@@ -2,7 +2,7 @@ using System;
 
 namespace CompressForDiscord.Models;
 
-/// <summary>Encoder parameters for one two-pass VP9/Opus attempt.</summary>
+/// <summary>Encoder parameters for one two-pass H.264/AAC attempt.</summary>
 internal sealed record VideoPlan(
     int VideoKbps,
     int? AudioKbps,
@@ -13,8 +13,9 @@ internal sealed record VideoPlan(
 {
     /// <summary>
     /// True when this plan produces the same pass-1 filter chain as <paramref name="other"/>
-    /// (same dims + fps). libvpx pass-1 stats are complexity data independent of the target
-    /// bitrate, so a retry with an unchanged chain can skip pass 1 and reuse the stats.
+    /// (same dims + fps). x264 pass-1 stats are per-frame complexity data that rate control
+    /// rescales to any target bitrate (the classic bitrate-ladder workflow), so a retry with
+    /// an unchanged chain can skip pass 1 and reuse the stats.
     /// </summary>
     public bool SameVideoChainAs(VideoPlan other) =>
         Width == other.Width && Height == other.Height && Nullable.Equals(Fps, other.Fps);

@@ -10,9 +10,14 @@ namespace CompressForDiscord.Tests.Integration;
 /// <summary>Generates test media with ffmpeg's lavfi sources — no binary fixtures in git.</summary>
 internal static class FixtureFactory
 {
+    /// <param name="videoKbps">
+    /// Explicit bitrate so tests control which side of the size limit the fixture lands on —
+    /// h264 mp4 inputs that already fit are *skipped* by the orchestrator, not re-encoded.
+    /// </param>
     internal static string CreateMp4(
         string directory, string name = "input.mp4",
-        int seconds = 8, string size = "640x360", int fps = 30, bool audio = true)
+        int seconds = 8, string size = "640x360", int fps = 30, bool audio = true,
+        int videoKbps = 2000)
     {
         string path = Path.Combine(directory, name);
         List<string> args =
@@ -25,7 +30,7 @@ internal static class FixtureFactory
             args.AddRange(["-f", "lavfi", "-i", Invariant($"sine=frequency=440:duration={seconds}")]);
         }
 
-        args.AddRange(["-c:v", "libx264", "-pix_fmt", "yuv420p"]);
+        args.AddRange(["-c:v", "libx264", "-b:v", Invariant($"{videoKbps}k"), "-pix_fmt", "yuv420p"]);
         if (audio)
         {
             args.AddRange(["-c:a", "aac", "-shortest"]);
@@ -66,6 +71,9 @@ internal static class FixtureFactory
         ]);
         return path;
     }
+
+    internal static string CreateTinyMp4(string directory, string name = "input.mp4") =>
+        CreateMp4(directory, name, seconds: 1, size: "160x120", fps: 10, audio: false, videoKbps: 50);
 
     private static void Run(IReadOnlyList<string> args)
     {

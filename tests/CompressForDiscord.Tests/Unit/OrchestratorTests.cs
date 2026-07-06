@@ -42,7 +42,7 @@ public sealed class OrchestratorTests : IDisposable
         return path;
     }
 
-    private void SetupProbe(string path, MediaKind kind, long size, string codec = "vp9")
+    private void SetupProbe(string path, MediaKind kind, long size, string codec = "h264")
     {
         _prober.ProbeAsync(path, Arg.Any<CancellationToken>()).Returns(new MediaInfo(
             path, size, kind, "x", 10,
@@ -64,29 +64,38 @@ public sealed class OrchestratorTests : IDisposable
     }
 
     [Fact]
-    public async Task SmallVp9Webm_IsSkipped_ButSmallMp4IsNot()
+    public async Task SmallDiscordFriendlyFiles_AreSkipped()
     {
-        string webm = CreateInput("clip.webm");
-        SetupProbe(webm, MediaKind.Video, 100, codec: "vp9");
-        var webmResult = await Orchestrator.RunAsync(webm, TenMiB, NullProgress, CancellationToken.None);
-        Assert.True(webmResult.WasSkipped);
-
+        // h264 mp4 and vp9 webm both play inline in Discord — no reason to re-encode.
         string mp4 = CreateInput("clip.mp4");
         SetupProbe(mp4, MediaKind.Video, 100, codec: "h264");
+        Assert.True((await Orchestrator.RunAsync(mp4, TenMiB, NullProgress, CancellationToken.None)).WasSkipped);
+
+        string webm = CreateInput("clip.webm");
+        SetupProbe(webm, MediaKind.Video, 100, codec: "vp9");
+        Assert.True((await Orchestrator.RunAsync(webm, TenMiB, NullProgress, CancellationToken.None)).WasSkipped);
+    }
+
+    [Fact]
+    public async Task SmallHevcMp4_IsNotSkipped()
+    {
+        // Discord's Chromium clients don't play HEVC inline — convert even when small.
+        string mp4 = CreateInput("iphone.mp4");
+        SetupProbe(mp4, MediaKind.Video, 100, codec: "hevc");
         _video.CompressAsync(Arg.Any<MediaInfo>(), TenMiB, Arg.Any<string>(),
                 Arg.Any<IProgress<CompressionProgress>>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {
-                string produced = Path.Combine(call.ArgAt<string>(2), "out.webm");
+                string produced = Path.Combine(call.ArgAt<string>(2), "out.mp4");
                 File.WriteAllBytes(produced, new byte[50]);
                 return new CompressorOutput(produced, 1, 640, 360);
             });
 
-        var mp4Result = await Orchestrator.RunAsync(mp4, TenMiB, NullProgress, CancellationToken.None);
+        var result = await Orchestrator.RunAsync(mp4, TenMiB, NullProgress, CancellationToken.None);
 
-        Assert.False(mp4Result.WasSkipped); // wrong container: converts even when small
-        Assert.Equal(Path.Combine(_dir, "clip.discord.webm"), mp4Result.OutputPath);
-        Assert.True(File.Exists(mp4Result.OutputPath));
+        Assert.False(result.WasSkipped);
+        Assert.Equal(Path.Combine(_dir, "iphone.discord.mp4"), result.OutputPath);
+        Assert.True(File.Exists(result.OutputPath));
     }
 
     [Fact]
@@ -105,20 +114,20 @@ public sealed class OrchestratorTests : IDisposable
     {
         string input = CreateInput("video.mp4");
         SetupProbe(input, MediaKind.Video, 999_999_999);
-        File.WriteAllText(Path.Combine(_dir, "video.discord.webm"), "occupied");
+        File.WriteAllText(Path.Combine(_dir, "video.discord.mp4"), "occupied");
 
         _video.CompressAsync(Arg.Any<MediaInfo>(), Arg.Any<long>(), Arg.Any<string>(),
                 Arg.Any<IProgress<CompressionProgress>>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {
-                string produced = Path.Combine(call.ArgAt<string>(2), "out.webm");
+                string produced = Path.Combine(call.ArgAt<string>(2), "out.mp4");
                 File.WriteAllBytes(produced, new byte[50]);
                 return new CompressorOutput(produced, 2, 640, 360);
             });
 
         var result = await Orchestrator.RunAsync(input, TenMiB, NullProgress, CancellationToken.None);
 
-        Assert.Equal(Path.Combine(_dir, "video.discord (2).webm"), result.OutputPath);
+        Assert.Equal(Path.Combine(_dir, "video.discord (2).mp4"), result.OutputPath);
         Assert.Equal(2, result.Attempts);
     }
 
@@ -134,7 +143,7 @@ public sealed class OrchestratorTests : IDisposable
             .Returns(call =>
             {
                 observedTempDir = call.ArgAt<string>(2);
-                string produced = Path.Combine(observedTempDir, "out.webm");
+                string produced = Path.Combine(observedTempDir, "out.mp4");
                 File.WriteAllBytes(produced, new byte[50]);
                 return new CompressorOutput(produced, 1, 640, 360);
             });

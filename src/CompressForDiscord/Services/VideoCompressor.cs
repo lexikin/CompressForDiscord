@@ -10,9 +10,9 @@ using CompressForDiscord.Services.Planning;
 namespace CompressForDiscord.Services;
 
 /// <summary>
-/// Two-pass VP9/Opus encoder with a verify-and-retry loop. Pass 1 maps to 0–50 % progress,
-/// pass 2 to 50–100 %. When a retry keeps the same filter chain, the libvpx pass-1 stats are
-/// reused and only pass 2 reruns (stats are complexity data, independent of target bitrate).
+/// Two-pass H.264/AAC encoder with a verify-and-retry loop. Pass 1 maps to 0–50 % progress,
+/// pass 2 to 50–100 %. When a retry keeps the same filter chain, the x264 pass-1 stats are
+/// reused and only pass 2 reruns (rate control rescales stats to the new target bitrate).
 /// </summary>
 internal interface IVideoCompressor : IMediaCompressor;
 
@@ -22,7 +22,7 @@ internal sealed class VideoCompressor(IFfmpegRunner runner) : IVideoCompressor
         MediaInfo media, long limitBytes, string jobTempDir,
         IProgress<CompressionProgress> progress, CancellationToken ct)
     {
-        string passLogPrefix = Path.Combine(jobTempDir, "vp9stats");
+        string passLogPrefix = Path.Combine(jobTempDir, "x264stats");
         string nullSink = OperatingSystem.IsWindows() ? "NUL" : "/dev/null";
 
         VideoPlan? statsPlan = null; // plan the current pass-1 stats were generated with
@@ -50,7 +50,7 @@ internal sealed class VideoCompressor(IFfmpegRunner runner) : IVideoCompressor
                 statsPlan = plan;
             }
 
-            string output = Path.Combine(jobTempDir, $"out-a{attempt}.webm");
+            string output = Path.Combine(jobTempDir, $"out-a{attempt}.mp4");
             var pass2Args = FfmpegArgsBuilder.BuildVideoPass2Args(
                 media.FilePath, plan, passLogPrefix, output);
             var pass2Result = await runner.RunFfmpegAsync(

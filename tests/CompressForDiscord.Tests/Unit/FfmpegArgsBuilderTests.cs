@@ -16,7 +16,7 @@ public sealed class FfmpegArgsBuilderTests
     public void Pass1_GoldenArguments()
     {
         var args = FfmpegArgsBuilder.BuildVideoPass1Args(
-            @"C:\in\Ünïcode video.mp4", Plan1080, @"C:\tmp\vp9stats", "NUL");
+            @"C:\in\Ünïcode video.mp4", Plan1080, @"C:\tmp\x264stats", "NUL");
 
         Assert.Equal(
         [
@@ -24,9 +24,9 @@ public sealed class FfmpegArgsBuilderTests
             "-i", @"C:\in\Ünïcode video.mp4",
             "-map", "0:v:0", "-map_metadata", "-1", "-sn", "-dn",
             "-vf", "scale=1920:1080:flags=lanczos,format=yuv420p",
-            "-c:v", "libvpx-vp9", "-b:v", "1253k", "-minrate", "626k", "-maxrate", "1816k",
-            "-deadline", "good", "-cpu-used", "4", "-row-mt", "1", "-tile-columns", "2", "-g", "240",
-            "-pass", "1", "-passlogfile", @"C:\tmp\vp9stats",
+            "-c:v", "libx264", "-b:v", "1253k", "-maxrate", "1879k", "-bufsize", "2506k",
+            "-preset", "veryfast",
+            "-pass", "1", "-passlogfile", @"C:\tmp\x264stats",
             "-an", "-f", "null", "NUL",
         ], args);
     }
@@ -35,7 +35,7 @@ public sealed class FfmpegArgsBuilderTests
     public void Pass2_WithAudio_GoldenArguments()
     {
         var args = FfmpegArgsBuilder.BuildVideoPass2Args(
-            "in.mp4", Plan1080, "log", "out.webm");
+            "in.mp4", Plan1080, "log", "out.mp4");
 
         Assert.Equal(
         [
@@ -43,23 +43,22 @@ public sealed class FfmpegArgsBuilderTests
             "-i", "in.mp4",
             "-map", "0:v:0", "-map", "0:a:0", "-map_metadata", "-1", "-sn", "-dn",
             "-vf", "scale=1920:1080:flags=lanczos,format=yuv420p",
-            "-c:v", "libvpx-vp9", "-b:v", "1253k", "-minrate", "626k", "-maxrate", "1816k",
-            "-deadline", "good", "-cpu-used", "4", "-row-mt", "1", "-tile-columns", "2", "-g", "240",
-            "-auto-alt-ref", "1", "-lag-in-frames", "25",
+            "-c:v", "libx264", "-b:v", "1253k", "-maxrate", "1879k", "-bufsize", "2506k",
+            "-preset", "veryfast",
             "-pass", "2", "-passlogfile", "log",
-            "-c:a", "libopus", "-b:a", "96k", "-ac", "2",
-            "-f", "webm", "out.webm",
+            "-c:a", "aac", "-b:a", "96k", "-ac", "2",
+            "-movflags", "+faststart", "-f", "mp4", "out.mp4",
         ], args);
     }
 
     [Fact]
     public void Pass2_WithoutAudio_MapsNoAudioStream()
     {
-        var args = FfmpegArgsBuilder.BuildVideoPass2Args("in.gif", Plan360NoAudio, "log", "out.webm");
+        var args = FfmpegArgsBuilder.BuildVideoPass2Args("in.gif", Plan360NoAudio, "log", "out.mp4");
 
         Assert.Contains("-an", args);
         Assert.DoesNotContain("0:a:0", args);
-        Assert.DoesNotContain("libopus", args);
+        Assert.DoesNotContain("aac", args);
         Assert.Contains("fps=24,scale=640:360:flags=lanczos,format=yuv420p", args);
     }
 
@@ -67,7 +66,7 @@ public sealed class FfmpegArgsBuilderTests
     public void FilterChain_IsByteIdenticalAcrossPasses()
     {
         var pass1 = FfmpegArgsBuilder.BuildVideoPass1Args("in.mp4", Plan360NoAudio, "log", "NUL");
-        var pass2 = FfmpegArgsBuilder.BuildVideoPass2Args("in.mp4", Plan360NoAudio, "log", "out.webm");
+        var pass2 = FfmpegArgsBuilder.BuildVideoPass2Args("in.mp4", Plan360NoAudio, "log", "out.mp4");
 
         string Vf(string[] args) => args[System.Array.IndexOf(args, "-vf") + 1];
         Assert.Equal(Vf(pass1), Vf(pass2));

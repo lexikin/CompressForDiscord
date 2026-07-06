@@ -49,30 +49,30 @@ public sealed class CompressionIntegrationTests : IDisposable
     }
 
     [IntegrationFact]
-    public async Task Mp4WithAudio_BecomesWebmUnderTheLimit()
+    public async Task OversizedMp4WithAudio_BecomesMp4UnderTheLimit()
     {
-        string input = FixtureFactory.CreateMp4(_dir, seconds: 8);
+        string input = FixtureFactory.CreateMp4(_dir, seconds: 8); // 2000 kbps ≈ 2 MB
         const long limit = 1024 * 1024; // 1 MiB forces real bitrate math on an 8 s clip
         var (progress, maxPercent) = TrackingProgress();
 
         var result = await NewOrchestrator().RunAsync(input, limit, progress, CancellationToken.None);
 
         Assert.False(result.WasSkipped);
-        Assert.EndsWith(".discord.webm", result.OutputPath);
+        Assert.EndsWith(".discord.mp4", result.OutputPath);
         Assert.True(File.Exists(result.OutputPath));
         Assert.InRange(new FileInfo(result.OutputPath).Length, 1, limit);
         Assert.Equal(100, maxPercent());
 
-        // Re-probe: really webm/vp9 with opus audio.
+        // Re-probe: really mp4/h264 with aac audio.
         var probe = await new MediaProber(new FfmpegRunner(new FfmpegLocator()))
             .ProbeAsync(result.OutputPath, CancellationToken.None);
-        Assert.Contains("webm", probe.ContainerFormat);
-        Assert.Equal("vp9", probe.Video!.CodecName);
-        Assert.Equal("opus", probe.Audio!.CodecName);
+        Assert.Contains("mp4", probe.ContainerFormat);
+        Assert.Equal("h264", probe.Video!.CodecName);
+        Assert.Equal("aac", probe.Audio!.CodecName);
     }
 
     [IntegrationFact]
-    public async Task AnimatedGif_BecomesWebm()
+    public async Task AnimatedGif_BecomesMp4()
     {
         string input = FixtureFactory.CreateAnimatedGif(_dir);
         var (progress, _) = TrackingProgress();
@@ -81,7 +81,7 @@ public sealed class CompressionIntegrationTests : IDisposable
             input, 10 * 1024 * 1024, progress, CancellationToken.None);
 
         Assert.Equal(MediaKind.AnimatedImage, result.Kind);
-        Assert.EndsWith(".discord.webm", result.OutputPath);
+        Assert.EndsWith(".discord.mp4", result.OutputPath);
         Assert.True(File.Exists(result.OutputPath));
     }
 
@@ -103,6 +103,19 @@ public sealed class CompressionIntegrationTests : IDisposable
     public async Task TinyWebm_IsSkippedUntouched()
     {
         string input = FixtureFactory.CreateTinyWebm(_dir);
+        var (progress, _) = TrackingProgress();
+
+        var result = await NewOrchestrator().RunAsync(
+            input, 10 * 1024 * 1024, progress, CancellationToken.None);
+
+        Assert.True(result.WasSkipped);
+        Assert.Equal(input, result.OutputPath);
+    }
+
+    [IntegrationFact]
+    public async Task TinyH264Mp4_IsSkippedUntouched()
+    {
+        string input = FixtureFactory.CreateTinyMp4(_dir);
         var (progress, _) = TrackingProgress();
 
         var result = await NewOrchestrator().RunAsync(
