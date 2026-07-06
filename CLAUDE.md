@@ -26,6 +26,10 @@ pwsh packaging/scripts/make-icons.ps1         # regenerate committed icon assets
   API values; verify empirically before changing.
 - ffmpeg `-progress` quirk: `out_time_ms` is **microseconds**; `out_time_us` is preferred.
   PNG `-compression_level` is 0–9 (not 0–100).
+- libvpx speed dial (measured 2026-07-06, 6-core box, 15 s 1080p30 @ ~5.3 Mbps): pass 2
+  cu2=76 s/VMAF 96.9, cu4=44 s/96.2, **cu5=57 s/96.0 — slower AND worse than cu4** (good-deadline
+  clamp quirk; pass 1 at cu5 is 7x slower than cu4 too). Both passes use cpu-used 4; don't
+  "optimize" to 5.
 - Two-pass VP9: the `-vf` chain must be byte-identical across passes; `-passlogfile` lives in
   the per-job temp dir (`%TEMP%/CompressForDiscord/<guid>`), never next to the source.
   Same-chain retries skip pass 1 (stats are bitrate-independent).

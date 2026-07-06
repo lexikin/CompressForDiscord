@@ -44,7 +44,7 @@ public sealed class FfmpegArgsBuilderTests
             "-map", "0:v:0", "-map", "0:a:0", "-map_metadata", "-1", "-sn", "-dn",
             "-vf", "scale=1920:1080:flags=lanczos,format=yuv420p",
             "-c:v", "libvpx-vp9", "-b:v", "1253k", "-minrate", "626k", "-maxrate", "1816k",
-            "-deadline", "good", "-cpu-used", "2", "-row-mt", "1", "-tile-columns", "2", "-g", "240",
+            "-deadline", "good", "-cpu-used", "4", "-row-mt", "1", "-tile-columns", "2", "-g", "240",
             "-auto-alt-ref", "1", "-lag-in-frames", "25",
             "-pass", "2", "-passlogfile", "log",
             "-c:a", "libopus", "-b:a", "96k", "-ac", "2",

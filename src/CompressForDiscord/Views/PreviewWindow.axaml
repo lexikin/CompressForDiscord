@@ -10,7 +10,7 @@
         MinWidth="480" MinHeight="320"
         WindowStartupLocation="CenterScreen">
   <!-- The VideoView hosts a native HWND that paints over Avalonia content, so the banner
-       lives in its own grid row — never overlaid on the video. -->
+       and controls live in their own grid rows — never overlaid on the video. -->
   <Grid RowDefinitions="Auto,*,Auto">
 
     <controls:ClipboardBanner Grid.Row="0" />
@@ -21,9 +21,10 @@
              Stretch="Uniform"
              Margin="8" />
 
+      <!-- MediaPlayer is attached in code-behind AFTER the native handle exists;
+           binding it here races handle creation and vlc floats its own window. -->
       <vlc:VideoView x:Name="VideoView"
-                     IsVisible="{Binding ShowVideo}"
-                     MediaPlayer="{Binding MediaPlayer}" />
+                     IsVisible="{Binding ShowVideo}" />
 
       <Grid IsVisible="{Binding ShowThumbnail}">
         <Image Source="{Binding ThumbnailSource}"
@@ -43,8 +44,52 @@
       </Grid>
     </Panel>
 
-    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="14,10">
-      <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto" Margin="14,10">
+
+      <!-- Player controls (video mode only) -->
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4"
+                  IsVisible="{Binding ShowVideo}"
+                  VerticalAlignment="Center"
+                  Margin="0,0,12,0">
+        <Button Command="{Binding TogglePlayPauseCommand}"
+                Padding="8" Background="Transparent"
+                ToolTip.Tip="Play / pause">
+          <Panel>
+            <PathIcon Width="16" Height="16"
+                      Data="M6,19 H10 V5 H6 Z M14,5 V19 H18 V5 Z"
+                      IsVisible="{Binding !IsPaused}" />
+            <PathIcon Width="16" Height="16"
+                      Data="M8,5 V19 L19,12 Z"
+                      IsVisible="{Binding IsPaused}" />
+          </Panel>
+        </Button>
+        <Button Command="{Binding ToggleMuteCommand}"
+                Padding="8" Background="Transparent"
+                ToolTip.Tip="Mute / unmute">
+          <Panel>
+            <PathIcon Width="16" Height="16"
+                      Data="M16.5,12 C16.5,10.23 15.48,8.71 14,7.97 V10.18 L16.45,12.63 C16.48,12.43 16.5,12.22 16.5,12 Z M4.27,3 L3,4.27 L7.73,9 H3 V15 H7 L12,20 V13.27 L16.25,17.52 C15.58,18.04 14.83,18.45 14,18.7 V20.76 C15.38,20.45 16.63,19.81 17.69,18.95 L19.73,21 L21,19.73 L12,10.73 Z M12,4 L9.91,6.09 L12,8.18 Z"
+                      IsVisible="{Binding IsMuted}" />
+            <PathIcon Width="16" Height="16"
+                      Data="M3,9 V15 H7 L12,20 V4 L7,9 Z M16.5,12 C16.5,10.23 15.48,8.71 14,7.97 V16.02 C15.48,15.29 16.5,13.77 16.5,12 Z M14,3.23 V5.29 C16.89,6.15 19,8.83 19,12 C19,15.17 16.89,17.85 14,18.71 V20.77 C18.01,19.86 21,16.28 21,12 C21,7.72 18.01,4.14 14,3.23 Z"
+                      IsVisible="{Binding !IsMuted}" />
+          </Panel>
+        </Button>
+        <Button Command="{Binding ToggleFullscreenCommand}"
+                Padding="8" Background="Transparent"
+                ToolTip.Tip="Fullscreen (Esc to exit)">
+          <Panel>
+            <PathIcon Width="16" Height="16"
+                      Data="M7,14 H5 V19 H10 V17 H7 Z M5,10 H7 V7 H10 V5 H5 Z M17,17 H14 V19 H19 V14 H17 Z M14,5 V7 H17 V10 H19 V5 Z"
+                      IsVisible="{Binding !IsFullscreen}" />
+            <PathIcon Width="16" Height="16"
+                      Data="M5,16 H8 V19 H10 V14 H5 Z M8,8 H5 V10 H10 V5 H8 Z M14,19 H16 V16 H19 V14 H14 Z M16,8 V5 H14 V10 H19 V8 Z"
+                      IsVisible="{Binding IsFullscreen}" />
+          </Panel>
+        </Button>
+      </StackPanel>
+
+      <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
         <TextBlock Text="{Binding OutputFileName}"
                    FontWeight="SemiBold"
                    TextTrimming="CharacterEllipsis" />
@@ -54,12 +99,12 @@
                    Foreground="#D9A21B" FontSize="12"
                    TextWrapping="Wrap" />
       </StackPanel>
-      <Button Grid.Column="1"
+      <Button Grid.Column="2"
               Content="Copy again"
               Command="{Binding CopyAgainCommand}"
               Margin="0,0,8,0"
               VerticalAlignment="Center" />
-      <Button Grid.Column="2"
+      <Button Grid.Column="3"
               Content="Show in folder"
               Command="{Binding ShowInFolderCommand}"
               VerticalAlignment="Center" />

@@ -54,6 +54,16 @@ internal sealed partial class PreviewWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _showThumbnail;
 
+    // ---- player controls ----
+    [ObservableProperty]
+    private bool _isPaused;
+
+    [ObservableProperty]
+    private bool _isMuted = true; // previews start muted by design
+
+    [ObservableProperty]
+    private bool _isFullscreen;
+
     [ObservableProperty]
     private Bitmap? _imageSource;
 
@@ -131,14 +141,66 @@ internal sealed partial class PreviewWindowViewModel : ObservableObject
         ShowThumbnail = true;
     }
 
-    /// <summary>Called by the view once the native VideoView handle exists (Window.Opened).</summary>
+    /// <summary>
+    /// True once libvlc has been handed the native surface. Playing before this exists makes
+    /// vlc open its own top-level window instead of embedding.
+    /// </summary>
+    public bool HasVideoSurface()
+    {
+        if (MediaPlayer is not { } player)
+        {
+            return false;
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            return player.Hwnd != IntPtr.Zero;
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            return player.XWindow != 0;
+        }
+
+        return true;
+    }
+
+    /// <summary>Called by the view once the native VideoView surface is attached.</summary>
     public void StartVideoPlayback()
     {
         if (MediaPlayer is { } player && _media is { } media)
         {
             player.Play(media);
+            IsPaused = false;
         }
     }
+
+    [RelayCommand]
+    private void TogglePlayPause()
+    {
+        if (MediaPlayer is not { } player)
+        {
+            return;
+        }
+
+        IsPaused = !IsPaused;
+        player.SetPause(IsPaused);
+    }
+
+    [RelayCommand]
+    private void ToggleMute()
+    {
+        if (MediaPlayer is not { } player)
+        {
+            return;
+        }
+
+        IsMuted = !IsMuted;
+        player.Mute = IsMuted;
+    }
+
+    [RelayCommand]
+    private void ToggleFullscreen() => IsFullscreen = !IsFullscreen; // the view maps this to WindowState
 
     public void ShowBannerFor(ClipboardOutcome outcome)
     {

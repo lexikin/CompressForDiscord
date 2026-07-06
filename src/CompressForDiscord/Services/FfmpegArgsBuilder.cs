@@ -54,7 +54,9 @@ internal static class FfmpegArgsBuilder
         // The -vf chain must be byte-identical to pass 1 or the stats are useless.
         args.AddRange(["-vf", BuildVideoFilterChain(plan)]);
         args.AddRange(RateControlArgs(plan));
-        args.AddRange(["-deadline", "good", "-cpu-used", "2", "-row-mt", "1", "-tile-columns", "2", "-g", "240"]);
+        // cpu-used 4 measured 1.7x faster than 2 for -0.7 VMAF (96.9→96.2) — and 5 is
+        // paradoxically SLOWER and worse than 4 in libvpx's good deadline. Keep 4.
+        args.AddRange(["-deadline", "good", "-cpu-used", "4", "-row-mt", "1", "-tile-columns", "2", "-g", "240"]);
         args.AddRange(["-auto-alt-ref", "1", "-lag-in-frames", "25"]);
         args.AddRange(["-pass", "2", "-passlogfile", passLogPrefix]);
 
