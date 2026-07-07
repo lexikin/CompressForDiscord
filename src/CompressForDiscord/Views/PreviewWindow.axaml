@@ -3,9 +3,10 @@
         xmlns:vm="using:CompressForDiscord.ViewModels"
         xmlns:controls="using:CompressForDiscord.Views.Controls"
         xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
+        xmlns:infra="using:CompressForDiscord.Infrastructure"
         x:Class="CompressForDiscord.Views.PreviewWindow"
         x:DataType="vm:PreviewWindowViewModel"
-        Title="Compress for Discord"
+        Title="{x:Static infra:AppVersion.WindowTitle}"
         Width="820" Height="560"
         MinWidth="480" MinHeight="320"
         WindowStartupLocation="CenterScreen">
