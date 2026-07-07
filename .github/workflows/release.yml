@@ -13,6 +13,7 @@ jobs:
     outputs:
       semver: ${{ steps.derive.outputs.semver }}
       triple: ${{ steps.derive.outputs.triple }}
+      msiversion: ${{ steps.derive.outputs.msiversion }}
       msix: ${{ steps.derive.outputs.msix }}
       prerelease: ${{ steps.derive.outputs.prerelease }}
     steps:
@@ -20,10 +21,16 @@ jobs:
         run: |
           SEMVER="${GITHUB_REF_NAME#v}"
           TRIPLE="${SEMVER%%-*}"
+          # Windows Installer compares only major.minor.build and ignores prerelease tags, so
+          # every rc of 0.1.0 collided at "0.1.0" and never upgraded in place. Put the ever-
+          # increasing CI run number in the build field so each release strictly outranks the
+          # last and MajorUpgrade fires. The human-readable semver still labels the filenames.
+          MSIVERSION="${TRIPLE%.*}.${{ github.run_number }}"
           {
             echo "semver=$SEMVER"
             echo "triple=$TRIPLE"
-            echo "msix=$TRIPLE.0"
+            echo "msiversion=$MSIVERSION"
+            echo "msix=$MSIVERSION.0"
             if [[ "$SEMVER" == *-* ]]; then echo "prerelease=true"; else echo "prerelease=false"; fi
           } >> "$GITHUB_OUTPUT"
 
@@ -96,7 +103,7 @@ jobs:
           $args = @(
             'build', 'packaging/windows/msi/CompressForDiscord.Installer.wixproj',
             '-c', 'Release',
-            "-p:ProductVersion=${{ needs.version.outputs.triple }}",
+            "-p:ProductVersion=${{ needs.version.outputs.msiversion }}",
             "-p:SemVer=${{ needs.version.outputs.semver }}",
             "-p:PublishDir=$env:GITHUB_WORKSPACE/artifacts/publish/win-x64"
           )

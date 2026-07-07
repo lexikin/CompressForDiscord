@@ -99,6 +99,13 @@
                    IsVisible="{Binding HasFallbackNote}"
                    Foreground="#D9A21B" FontSize="12"
                    TextWrapping="Wrap" />
+        <Button Content="{Binding UpdateText}"
+                Command="{Binding OpenUpdateCommand}"
+                IsVisible="{Binding HasUpdate}"
+                Background="Transparent" Padding="0"
+                Foreground="#5865F2" Cursor="Hand"
+                FontSize="12"
+                HorizontalAlignment="Left" />
       </StackPanel>
       <Button Grid.Column="2"
               Content="Copy again"

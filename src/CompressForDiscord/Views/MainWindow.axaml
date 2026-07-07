@@ -49,5 +49,12 @@
 
     <TextBlock Text="Tip: right-click any video or image in your file manager → Compress for Discord"
                Opacity="0.55" FontSize="11" TextWrapping="Wrap" />
+
+    <Button Content="{Binding UpdateText}"
+            Command="{Binding OpenUpdateCommand}"
+            IsVisible="{Binding HasUpdate}"
+            Background="Transparent" Padding="0"
+            Foreground="#5865F2" Cursor="Hand"
+            HorizontalAlignment="Left" />
   </StackPanel>
 </Window>

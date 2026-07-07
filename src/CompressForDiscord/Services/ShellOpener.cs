@@ -44,6 +44,23 @@ internal static class ShellOpener
         });
     }
 
+    public static void OpenUrl(string url)
+    {
+        Try(() =>
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            else
+            {
+                var psi = new ProcessStartInfo("xdg-open") { UseShellExecute = false };
+                psi.ArgumentList.Add(url);
+                Process.Start(psi);
+            }
+        });
+    }
+
     private static void Try(Action action)
     {
         try

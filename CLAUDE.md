@@ -64,3 +64,14 @@ pwsh packaging/scripts/make-icons.ps1         # regenerate committed icon assets
 Tag `v*` → `.github/workflows/release.yml` builds MSI / AppImage / .flatpak and attaches them
 to a GitHub Release with SHA256SUMS. ffmpeg is downloaded+sha256-verified per
 `packaging/ffmpeg/ffmpeg.lock.json` (BtbN builds; mirror at the `third-party-sources` release).
+
+- **Versioning**: the version job derives `semver` (full, e.g. `0.1.0-rc.9` — labels filenames +
+  window title), `triple` (numeric `0.1.0`), and **`msiversion` = `major.minor.<github.run_number>`**.
+  The MSI's `ProductVersion` MUST use `msiversion`, not `triple`: Windows Installer compares only
+  major.minor.build and IGNORES the prerelease tag, so every rc-of-0.1.0 collided at `0.1.0` and
+  MajorUpgrade never fired (users ended up with stacked side-by-side installs). The run number in
+  the build field guarantees each release strictly outranks the last. ARP then shows `0.1.<run>`,
+  not the semver — that's expected; the real version lives in the title bar (`AppVersion`).
+- In-app update check: `UpdateChecker` hits the GitHub Releases API (includes prereleases), compares
+  the newest tag to `AppVersion.Display` via `SemVer.Compare`, and surfaces a click-to-download link
+  in the main + preview windows. Best-effort, non-blocking, silent on failure.

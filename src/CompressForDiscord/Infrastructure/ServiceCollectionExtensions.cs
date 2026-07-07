@@ -19,7 +19,8 @@ internal static class ServiceCollectionExtensions
             .AddSingleton<ICompressionOrchestrator, CompressionOrchestrator>()
             .AddSingleton<ISettingsService, SettingsService>()
             .AddSingleton<IVlcService, VlcService>()
-            .AddSingleton<IThumbnailService, ThumbnailService>();
+            .AddSingleton<IThumbnailService, ThumbnailService>()
+            .AddSingleton<IUpdateChecker, UpdateChecker>();
 
         if (OperatingSystem.IsWindows())
         {

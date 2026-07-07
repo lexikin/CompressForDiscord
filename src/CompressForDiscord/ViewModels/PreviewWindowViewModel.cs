@@ -26,10 +26,19 @@ internal sealed partial class PreviewWindowViewModel : ObservableObject
     private readonly IVlcService _vlc;
     private readonly IThumbnailService _thumbnails;
     private readonly Func<Task<ClipboardOutcome>> _recopy;
+    private readonly IUpdateChecker _updateChecker;
     private readonly DispatcherTimer _bannerTimer;
 
     private Media? _media;
     private DateTime _bannerStartedUtc;
+    private string? _updateUrl;
+
+    // ---- update notice ----
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUpdate))]
+    private string? _updateText;
+
+    public bool HasUpdate => UpdateText is not null;
 
     // ---- banner ----
     [ObservableProperty]
@@ -78,12 +87,14 @@ internal sealed partial class PreviewWindowViewModel : ObservableObject
         long limitBytes,
         IVlcService vlc,
         IThumbnailService thumbnails,
-        Func<Task<ClipboardOutcome>> recopy)
+        Func<Task<ClipboardOutcome>> recopy,
+        IUpdateChecker updateChecker)
     {
         _result = result;
         _vlc = vlc;
         _thumbnails = thumbnails;
         _recopy = recopy;
+        _updateChecker = updateChecker;
 
         OutputFileName = Path.GetFileName(result.OutputPath);
         SizeText = string.Create(CultureInfo.InvariantCulture,
@@ -249,6 +260,25 @@ internal sealed partial class PreviewWindowViewModel : ObservableObject
 
     [RelayCommand]
     private void OpenInPlayer() => ShellOpener.OpenInDefaultApp(_result.OutputPath);
+
+    /// <summary>Fire-and-forget from the UI thread; surfaces a link if a newer release exists.</summary>
+    public async Task CheckForUpdatesAsync(CancellationToken ct)
+    {
+        if (await _updateChecker.CheckAsync(ct) is { } info)
+        {
+            _updateUrl = info.ReleaseUrl;
+            UpdateText = $"Update available: v{info.Version}";
+        }
+    }
+
+    [RelayCommand]
+    private void OpenUpdate()
+    {
+        if (_updateUrl is { } url)
+        {
+            ShellOpener.OpenUrl(url);
+        }
+    }
 
     /// <summary>
     /// Call on window close. The view must detach VideoView.MediaPlayer first; stopping and

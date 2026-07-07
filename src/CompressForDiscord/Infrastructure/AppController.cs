@@ -46,10 +46,10 @@ internal sealed class AppController(
 
     private void ShowMainWindow()
     {
-        var window = new MainWindow(this)
-        {
-            DataContext = new MainWindowViewModel(services.GetRequiredService<ISettingsService>()),
-        };
+        var viewModel = new MainWindowViewModel(
+            services.GetRequiredService<ISettingsService>(),
+            services.GetRequiredService<IUpdateChecker>());
+        var window = new MainWindow(this) { DataContext = viewModel };
         desktop.MainWindow = window;
         window.Closed += (_, _) =>
         {
@@ -59,6 +59,7 @@ internal sealed class AppController(
             }
         };
         window.Show();
+        _ = viewModel.CheckForUpdatesAsync(CancellationToken.None);
     }
 
     private async Task RunCliAsync(string[] files)
@@ -134,7 +135,8 @@ internal sealed class AppController(
                 services.GetRequiredService<IVlcService>(),
                 services.GetRequiredService<IThumbnailService>(),
                 // ReSharper disable once AccessToModifiedClosure — assigned right below
-                () => CopyToClipboardAsync(result.OutputPath, previewWindow));
+                () => CopyToClipboardAsync(result.OutputPath, previewWindow),
+                services.GetRequiredService<IUpdateChecker>());
             await previewVm.InitializeAsync(CancellationToken.None);
 
             previewWindow = new PreviewWindow { DataContext = previewVm };
@@ -144,6 +146,7 @@ internal sealed class AppController(
             previewWindow.Show();          // open the preview BEFORE closing progress
             progressWindow.ForceClose();
             previewVm.ShowBannerFor(outcome);
+            _ = previewVm.CheckForUpdatesAsync(CancellationToken.None);
 
             if (_cliMode)
             {

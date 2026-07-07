@@ -8,6 +8,8 @@ Run before tagging a release. Platforms: **Windows 10**, **Windows 11 VM**, **Ub
 - [ ] Large mp4 (>50 MB) → right-click → Compress for Discord → progress advances (ETA shown, taskbar button fills) → preview opens → **Ctrl+V into Discord uploads the mp4**
 - [ ] Progress bar animates immediately (no frozen 0% while the encoder spins up); Windows taskbar button shows the same progress
 - [ ] Video encodes on the GPU when present (log line `video encoder: NVENC/Quick Sync/AMF`); on a GPU-less machine the log shows `x264` and it still works
+- [ ] Installing a newer MSI **replaces** the old one — Add/Remove Programs shows a single entry, and the title bar reflects the new version (no stacked side-by-side installs)
+- [ ] When a newer GitHub release exists, the main window and preview footer show a blue "Update available: v… — click to download" link that opens the release page
 - [ ] 4K 60 fps clip → output is downscaled + capped at 30 fps, still under limit
 - [ ] Animated GIF → mp4; plays looping & muted in preview
 - [ ] Static GIF → png

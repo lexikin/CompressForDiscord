@@ -1,4 +1,7 @@
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CompressForDiscord.Models;
 using CompressForDiscord.Services;
 
@@ -7,16 +10,44 @@ namespace CompressForDiscord.ViewModels;
 internal sealed partial class MainWindowViewModel : ObservableObject
 {
     private readonly ISettingsService _settingsService;
+    private readonly IUpdateChecker _updateChecker;
     private readonly AppSettings _settings;
+    private string? _updateUrl;
 
     [ObservableProperty]
     private bool _isBusy;
 
-    public MainWindowViewModel(ISettingsService settingsService)
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUpdate))]
+    private string? _updateText;
+
+    public bool HasUpdate => UpdateText is not null;
+
+    public MainWindowViewModel(ISettingsService settingsService, IUpdateChecker updateChecker)
     {
         _settingsService = settingsService;
+        _updateChecker = updateChecker;
         _settings = settingsService.Load();
         _customLimitMiB = (decimal)_settings.CustomLimitMiB;
+    }
+
+    /// <summary>Fire-and-forget from the UI thread; surfaces a link if a newer release exists.</summary>
+    public async Task CheckForUpdatesAsync(CancellationToken ct)
+    {
+        if (await _updateChecker.CheckAsync(ct) is { } info)
+        {
+            _updateUrl = info.ReleaseUrl;
+            UpdateText = $"Update available: v{info.Version} — click to download";
+        }
+    }
+
+    [RelayCommand]
+    private void OpenUpdate()
+    {
+        if (_updateUrl is { } url)
+        {
+            ShellOpener.OpenUrl(url);
+        }
     }
 
     public bool IsFree10
