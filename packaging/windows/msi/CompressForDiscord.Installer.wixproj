@@ -2,9 +2,13 @@
 
   <PropertyGroup>
     <InstallerPlatform>x64</InstallerPlatform>
+    <!-- ProductVersion is the numeric MSI ProductVersion (upgrade detection; must be a.b.c).
+         SemVer is only the filename label so prereleases match the AppImage/Flatpak naming;
+         it defaults to ProductVersion for a bare local build. -->
     <ProductVersion Condition="'$(ProductVersion)' == ''">0.1.0</ProductVersion>
+    <SemVer Condition="'$(SemVer)' == ''">$(ProductVersion)</SemVer>
     <PublishDir Condition="'$(PublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\..\artifacts\publish\win-x64</PublishDir>
-    <OutputName>CompressForDiscord-$(ProductVersion)-x64</OutputName>
+    <OutputName>CompressForDiscord-$(SemVer)-x64</OutputName>
     <SuppressSpecificWarnings>1118</SuppressSpecificWarnings>
     <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(PublishDir)</DefineConstants>
     <!-- Optional pieces — CI passes these; a bare local build skips them. -->

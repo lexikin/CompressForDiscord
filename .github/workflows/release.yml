@@ -97,6 +97,7 @@ jobs:
             'build', 'packaging/windows/msi/CompressForDiscord.Installer.wixproj',
             '-c', 'Release',
             "-p:ProductVersion=${{ needs.version.outputs.triple }}",
+            "-p:SemVer=${{ needs.version.outputs.semver }}",
             "-p:PublishDir=$env:GITHUB_WORKSPACE/artifacts/publish/win-x64"
           )
           $shellDll = "$env:GITHUB_WORKSPACE/src/CompressForDiscord.Shell/x64/Release/CompressForDiscord.Shell.dll"
