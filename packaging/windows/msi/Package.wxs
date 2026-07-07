@@ -12,7 +12,11 @@
            Scope="perMachine"
            Compressed="yes">
 
+    <!-- AllowSameVersionUpgrades: also replace an equal-version install instead of stacking a
+         second copy alongside it (each CI build has a unique ProductVersion, but this makes a
+         re-install of the same build a clean overwrite too). -->
     <MajorUpgrade Schedule="afterInstallValidate"
+                  AllowSameVersionUpgrades="yes"
                   DowngradeErrorMessage="A newer version of Compress for Discord is already installed." />
     <MediaTemplate EmbedCab="yes" />
 

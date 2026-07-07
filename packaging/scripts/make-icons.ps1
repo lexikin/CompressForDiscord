@@ -28,26 +28,43 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $appId    = 'io.github.lexikin.CompressForDiscord'
 
 # ---------------------------------------------------------------------------
-# Artwork definition — 512x512 canvas.
-#   background: rounded rect (16,16 480x480, r=104), vertical gradient #5865F2 -> #3C45A5
-#   glyph (white): arrow shaft rect (216,112 80x148)
-#                  arrow head triangle (144,260) (368,260) (256,392)
-#                  base bar pill (144,416 224x40, r=20)
-# Keep the SVG below in sync with New-IconBitmap — same numbers, two renderers.
+# Artwork definition — 512x512 canvas: a hazard-striped mechanical press squishing a
+# vertically-compressed Discord blob.
+#   background: rounded rect (16,16 480x480, r=104), light gradient #FBFBFE -> #E6E9F5
+#   press (near-black #17171A): two ram bars (196,34 44x118) (272,34 44x118),
+#                               neck (176,150 160x42), platen frame (44,196 424x118, r=20)
+#   platen face: yellow #F6C915 with black diagonal hazard stripes, clipped to (66,218 380x74)
+#   squished Discord: ground shadow ellipse; blurple pill face (132,356 248x104, r=52,
+#                     gradient #6470F5 -> #4B55C6); two dark eyes.
+# Keep the SVG below in sync with New-IconBitmap — same geometry, two renderers.
 # ---------------------------------------------------------------------------
 
 $svg = @'
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5865F2"/>
-      <stop offset="1" stop-color="#3C45A5"/>
+      <stop offset="0" stop-color="#FBFBFE"/><stop offset="1" stop-color="#E6E9F5"/>
     </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6470F5"/><stop offset="1" stop-color="#4B55C6"/>
+    </linearGradient>
+    <pattern id="hazard" width="68" height="68" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+      <rect width="68" height="68" fill="#F6C915"/><rect width="34" height="68" fill="#17171A"/>
+    </pattern>
+    <clipPath id="platen"><rect x="66" y="218" width="380" height="74" rx="8"/></clipPath>
   </defs>
   <rect x="16" y="16" width="480" height="480" rx="104" fill="url(#bg)"/>
-  <rect x="216" y="112" width="80" height="148" fill="#ffffff"/>
-  <polygon points="144,260 368,260 256,392" fill="#ffffff"/>
-  <rect x="144" y="416" width="224" height="40" rx="20" fill="#ffffff"/>
+  <g fill="#17171A">
+    <rect x="196" y="34" width="44" height="118" rx="14"/>
+    <rect x="272" y="34" width="44" height="118" rx="14"/>
+    <rect x="176" y="150" width="160" height="42" rx="12"/>
+    <rect x="44" y="196" width="424" height="118" rx="20"/>
+  </g>
+  <g clip-path="url(#platen)"><rect x="66" y="218" width="380" height="74" fill="url(#hazard)"/></g>
+  <ellipse cx="256" cy="464" rx="144" ry="24" fill="#5865F2" opacity="0.45"/>
+  <rect x="132" y="356" width="248" height="104" rx="52" fill="url(#face)"/>
+  <ellipse cx="216" cy="408" rx="19" ry="24" fill="#2B2F63"/>
+  <ellipse cx="296" cy="408" rx="19" ry="24" fill="#2B2F63"/>
 </svg>
 '@
 
@@ -62,40 +79,76 @@ function Add-RoundedRect(
     $path.CloseFigure()
 }
 
+function Add-RoundedRectFill(
+    [System.Drawing.Graphics]$g, [System.Drawing.Brush]$brush,
+    [double]$x, [double]$y, [double]$w, [double]$h, [double]$r) {
+    $p = [System.Drawing.Drawing2D.GraphicsPath]::new()
+    Add-RoundedRect $p $x $y $w $h $r
+    $g.FillPath($brush, $p)
+    $p.Dispose()
+}
+
 function New-IconBitmap([int]$size) {
     $bmp = [System.Drawing.Bitmap]::new($size, $size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     try {
         $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
         $s = $size / 512.0
         $g.ScaleTransform($s, $s)
+
+        $press = [System.Drawing.Color]::FromArgb(255, 0x17, 0x17, 0x1A)
+        $pressBrush = [System.Drawing.SolidBrush]::new($press)
 
         # Background tile
         $bgPath = [System.Drawing.Drawing2D.GraphicsPath]::new()
         Add-RoundedRect $bgPath 16 16 480 480 104
-        $grad = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
+        $bgGrad = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
             [System.Drawing.PointF]::new(0, 16), [System.Drawing.PointF]::new(0, 496),
-            [System.Drawing.Color]::FromArgb(255, 0x58, 0x65, 0xF2),
-            [System.Drawing.Color]::FromArgb(255, 0x3C, 0x45, 0xA5))
-        $g.FillPath($grad, $bgPath)
-        $grad.Dispose(); $bgPath.Dispose()
+            [System.Drawing.Color]::FromArgb(255, 0xFB, 0xFB, 0xFE),
+            [System.Drawing.Color]::FromArgb(255, 0xE6, 0xE9, 0xF5))
+        $g.FillPath($bgGrad, $bgPath)
+        $bgGrad.Dispose(); $bgPath.Dispose()
 
-        $white = [System.Drawing.Brushes]::White
+        # ---- Mechanical press (near-black) ----
+        Add-RoundedRectFill $g $pressBrush 196 34 44 118 14   # ram bar (left)
+        Add-RoundedRectFill $g $pressBrush 272 34 44 118 14   # ram bar (right)
+        Add-RoundedRectFill $g $pressBrush 176 150 160 42 12  # neck
+        Add-RoundedRectFill $g $pressBrush 44 196 424 118 20  # platen frame
 
-        # Arrow shaft
-        $g.FillRectangle($white, 216.0, 112.0, 80.0, 148.0)
+        # ---- Hazard stripes on the platen face ----
+        $inner = [System.Drawing.Drawing2D.GraphicsPath]::new()
+        Add-RoundedRect $inner 66 218 380 74 8
+        $g.SetClip($inner)
+        $yellow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 0xF6, 0xC9, 0x15))
+        $g.FillPath($yellow, $inner)
+        $stripePen = [System.Drawing.Pen]::new($press, 34.0)
+        for ($sx = -60.0; $sx -lt 500.0; $sx += 68.0) {
+            $g.DrawLine($stripePen, [single]$sx, 312.0, [single]($sx + 114.0), 198.0)
+        }
+        $stripePen.Dispose(); $yellow.Dispose()
+        $g.ResetClip(); $inner.Dispose()
 
-        # Arrow head
-        $g.FillPolygon($white, [System.Drawing.PointF[]]@(
-            [System.Drawing.PointF]::new(144, 260),
-            [System.Drawing.PointF]::new(368, 260),
-            [System.Drawing.PointF]::new(256, 392)))
+        # ---- Squished Discord ----
+        $shadow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(115, 0x58, 0x65, 0xF2))
+        $g.FillEllipse($shadow, 112.0, 440.0, 288.0, 48.0)   # ground shadow
+        $shadow.Dispose()
 
-        # Base bar (pill)
-        $barPath = [System.Drawing.Drawing2D.GraphicsPath]::new()
-        Add-RoundedRect $barPath 144 416 224 40 20
-        $g.FillPath($white, $barPath)
-        $barPath.Dispose()
+        $facePath = [System.Drawing.Drawing2D.GraphicsPath]::new()
+        Add-RoundedRect $facePath 132 356 248 104 52
+        $faceGrad = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
+            [System.Drawing.PointF]::new(0, 356), [System.Drawing.PointF]::new(0, 460),
+            [System.Drawing.Color]::FromArgb(255, 0x64, 0x70, 0xF5),
+            [System.Drawing.Color]::FromArgb(255, 0x4B, 0x55, 0xC6))
+        $g.FillPath($faceGrad, $facePath)
+        $faceGrad.Dispose(); $facePath.Dispose()
+
+        $eye = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 0x2B, 0x2F, 0x63))
+        $g.FillEllipse($eye, 197.0, 384.0, 38.0, 48.0)       # left eye
+        $g.FillEllipse($eye, 277.0, 384.0, 38.0, 48.0)       # right eye
+        $eye.Dispose()
+
+        $pressBrush.Dispose()
     }
     finally { $g.Dispose() }
     return $bmp
