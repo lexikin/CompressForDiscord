@@ -40,6 +40,10 @@ internal sealed class VideoCompressor(IFfmpegRunner runner) : IVideoCompressor
 
             if (!reuseStats)
             {
+                // Keep the bar animated (indeterminate) from the instant the encoder is
+                // spawned — the first real -progress packet may be seconds away on a big file.
+                progress.Report(new CompressionProgress(-1, $"{attemptLabel}Preparing…"));
+
                 var pass1Args = FfmpegArgsBuilder.BuildVideoPass1Args(
                     media.FilePath, plan, passLogPrefix, nullSink);
                 var pass1Result = await runner.RunFfmpegAsync(
@@ -80,6 +84,14 @@ internal sealed class VideoCompressor(IFfmpegRunner runner) : IVideoCompressor
         // Constructed on the caller's context; Progress<T> marshals to it automatically.
         return new Progress<ProgressUpdate>(update =>
         {
+            // While pass 1 warms up (encoder started, no measurable output yet) keep the bar
+            // marquee-animated instead of freezing it at a determinate 0%.
+            if (basePercent == 0 && update.Fraction <= 0 && !update.Ended)
+            {
+                progress.Report(new CompressionProgress(-1, phase + "…"));
+                return;
+            }
+
             double percent = basePercent + update.Fraction * 50;
             string text = phase;
             if (update.Speed is { } speed && media.DurationSeconds is { } duration && !update.Ended)
