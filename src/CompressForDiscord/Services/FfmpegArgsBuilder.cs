@@ -29,19 +29,7 @@ internal static class FfmpegArgsBuilder
         "-i", input,
     ];
 
-    internal static string[] BuildVideoPass1Args(string input, VideoPlan plan, string passLogPrefix, string nullSink)
-    {
-        var args = CommonEncodeArgs(input);
-        args.AddRange(["-map", "0:v:0", "-map_metadata", "-1", "-sn", "-dn"]);
-        args.AddRange(["-vf", BuildVideoFilterChain(plan)]);
-        args.AddRange(RateControlArgs(plan));
-        args.AddRange(["-preset", "veryfast"]);
-        args.AddRange(["-pass", "1", "-passlogfile", passLogPrefix]);
-        args.AddRange(["-an", "-f", "null", nullSink]);
-        return [.. args];
-    }
-
-    internal static string[] BuildVideoPass2Args(string input, VideoPlan plan, string passLogPrefix, string output)
+    internal static string[] BuildVideoArgs(string input, VideoPlan plan, VideoEncoder encoder, string output)
     {
         var args = CommonEncodeArgs(input);
         args.AddRange(["-map", "0:v:0"]);
@@ -51,11 +39,8 @@ internal static class FfmpegArgsBuilder
         }
 
         args.AddRange(["-map_metadata", "-1", "-sn", "-dn"]);
-        // The -vf chain must be byte-identical to pass 1 or the stats are useless.
         args.AddRange(["-vf", BuildVideoFilterChain(plan)]);
-        args.AddRange(RateControlArgs(plan));
-        args.AddRange(["-preset", "veryfast"]);
-        args.AddRange(["-pass", "2", "-passlogfile", passLogPrefix]);
+        args.AddRange(RateControlArgs(plan, encoder));
 
         if (plan.AudioKbps is int audioKbps)
         {
@@ -119,16 +104,24 @@ internal static class FfmpegArgsBuilder
     private static List<string> CommonEncodeArgs(string input) =>
         ["-y", "-loglevel", "error", "-progress", "pipe:1", "-i", input];
 
-    // x264 two-pass ABR with a gentle VBV cap: accurate size targeting at veryfast speed.
-    // "-preset veryfast" was chosen for speed-per-quality at a FIXED SIZE; x264 additionally
-    // auto-lightens pass 1 analysis (never add -slow-firstpass).
-    private static List<string> RateControlArgs(VideoPlan plan) =>
-    [
-        "-c:v", "libx264",
-        "-b:v", Invariant($"{plan.VideoKbps}k"),
-        "-maxrate", Invariant($"{plan.VideoKbps * 150 / 100}k"),
-        "-bufsize", Invariant($"{plan.VideoKbps * 2}k"),
-    ];
+    // Single-pass VBR with a gentle VBV cap (maxrate 1.5x, bufsize 2x): fast, and close enough
+    // on size that the orchestrator's verify-and-retry loop mops up the occasional overshoot.
+    // Hardware encoders keep their default (fast) preset; only x264 needs an explicit speed pick.
+    private static List<string> RateControlArgs(VideoPlan plan, VideoEncoder encoder)
+    {
+        var args = new List<string> { "-c:v", encoder.CodecArg };
+        if (!encoder.IsHardware)
+        {
+            args.AddRange(["-preset", "veryfast"]);
+        }
+
+        args.AddRange([
+            "-b:v", Invariant($"{plan.VideoKbps}k"),
+            "-maxrate", Invariant($"{plan.VideoKbps * 150 / 100}k"),
+            "-bufsize", Invariant($"{plan.VideoKbps * 2}k"),
+        ]);
+        return args;
+    }
 
     private static string Invariant(FormattableString value) =>
         FormattableString.Invariant(value);

@@ -13,63 +13,46 @@ public sealed class FfmpegArgsBuilderTests
         VideoKbps: 85, AudioKbps: null, AudioChannels: 0, Width: 640, Height: 360, Fps: 24);
 
     [Fact]
-    public void Pass1_GoldenArguments()
+    public void Video_Software_GoldenArguments()
     {
-        var args = FfmpegArgsBuilder.BuildVideoPass1Args(
-            @"C:\in\Ünïcode video.mp4", Plan1080, @"C:\tmp\x264stats", "NUL");
+        var args = FfmpegArgsBuilder.BuildVideoArgs(
+            @"C:\in\Ünïcode video.mp4", Plan1080, VideoEncoder.Software, "out.mp4");
 
         Assert.Equal(
         [
             "-y", "-loglevel", "error", "-progress", "pipe:1",
             "-i", @"C:\in\Ünïcode video.mp4",
-            "-map", "0:v:0", "-map_metadata", "-1", "-sn", "-dn",
-            "-vf", "scale=1920:1080:flags=lanczos,format=yuv420p",
-            "-c:v", "libx264", "-b:v", "1253k", "-maxrate", "1879k", "-bufsize", "2506k",
-            "-preset", "veryfast",
-            "-pass", "1", "-passlogfile", @"C:\tmp\x264stats",
-            "-an", "-f", "null", "NUL",
-        ], args);
-    }
-
-    [Fact]
-    public void Pass2_WithAudio_GoldenArguments()
-    {
-        var args = FfmpegArgsBuilder.BuildVideoPass2Args(
-            "in.mp4", Plan1080, "log", "out.mp4");
-
-        Assert.Equal(
-        [
-            "-y", "-loglevel", "error", "-progress", "pipe:1",
-            "-i", "in.mp4",
             "-map", "0:v:0", "-map", "0:a:0", "-map_metadata", "-1", "-sn", "-dn",
             "-vf", "scale=1920:1080:flags=lanczos,format=yuv420p",
-            "-c:v", "libx264", "-b:v", "1253k", "-maxrate", "1879k", "-bufsize", "2506k",
-            "-preset", "veryfast",
-            "-pass", "2", "-passlogfile", "log",
+            "-c:v", "libx264", "-preset", "veryfast",
+            "-b:v", "1253k", "-maxrate", "1879k", "-bufsize", "2506k",
             "-c:a", "aac", "-b:a", "96k", "-ac", "2",
             "-movflags", "+faststart", "-f", "mp4", "out.mp4",
         ], args);
     }
 
     [Fact]
-    public void Pass2_WithoutAudio_MapsNoAudioStream()
+    public void Video_Hardware_UsesEncoderCodecAndNoSoftwarePreset()
     {
-        var args = FfmpegArgsBuilder.BuildVideoPass2Args("in.gif", Plan360NoAudio, "log", "out.mp4");
+        var nvenc = VideoEncoder.HardwareCandidates[0];
+        var args = FfmpegArgsBuilder.BuildVideoArgs("in.mp4", Plan1080, nvenc, "out.mp4");
+
+        Assert.Contains("h264_nvenc", args);
+        Assert.DoesNotContain("libx264", args);
+        Assert.DoesNotContain("veryfast", args); // hardware keeps its own default preset
+        Assert.Contains("-b:v", args);
+        Assert.Contains("1253k", args);
+    }
+
+    [Fact]
+    public void Video_WithoutAudio_MapsNoAudioStream()
+    {
+        var args = FfmpegArgsBuilder.BuildVideoArgs("in.gif", Plan360NoAudio, VideoEncoder.Software, "out.mp4");
 
         Assert.Contains("-an", args);
         Assert.DoesNotContain("0:a:0", args);
         Assert.DoesNotContain("aac", args);
         Assert.Contains("fps=24,scale=640:360:flags=lanczos,format=yuv420p", args);
-    }
-
-    [Fact]
-    public void FilterChain_IsByteIdenticalAcrossPasses()
-    {
-        var pass1 = FfmpegArgsBuilder.BuildVideoPass1Args("in.mp4", Plan360NoAudio, "log", "NUL");
-        var pass2 = FfmpegArgsBuilder.BuildVideoPass2Args("in.mp4", Plan360NoAudio, "log", "out.mp4");
-
-        string Vf(string[] args) => args[System.Array.IndexOf(args, "-vf") + 1];
-        Assert.Equal(Vf(pass1), Vf(pass2));
     }
 
     [Fact]

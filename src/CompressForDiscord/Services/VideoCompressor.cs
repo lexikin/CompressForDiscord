@@ -10,22 +10,20 @@ using CompressForDiscord.Services.Planning;
 namespace CompressForDiscord.Services;
 
 /// <summary>
-/// Two-pass H.264/AAC encoder with a verify-and-retry loop. Pass 1 maps to 0–50 % progress,
-/// pass 2 to 50–100 %. When a retry keeps the same filter chain, the x264 pass-1 stats are
-/// reused and only pass 2 reruns (rate control rescales stats to the new target bitrate).
+/// Single-pass H.264/AAC encoder with a verify-and-retry loop. Uses the fastest working encoder
+/// on the machine (GPU if available, else x264 — see <see cref="IVideoEncoderSelector"/>). Single
+/// pass keeps it fast; the retry loop tightens the bitrate margin whenever VBR overshoots the limit.
 /// </summary>
 internal interface IVideoCompressor : IMediaCompressor;
 
-internal sealed class VideoCompressor(IFfmpegRunner runner) : IVideoCompressor
+internal sealed class VideoCompressor(IFfmpegRunner runner, IVideoEncoderSelector encoderSelector)
+    : IVideoCompressor
 {
     public async Task<CompressorOutput> CompressAsync(
         MediaInfo media, long limitBytes, string jobTempDir,
         IProgress<CompressionProgress> progress, CancellationToken ct)
     {
-        string passLogPrefix = Path.Combine(jobTempDir, "x264stats");
-        string nullSink = OperatingSystem.IsWindows() ? "NUL" : "/dev/null";
-
-        VideoPlan? statsPlan = null; // plan the current pass-1 stats were generated with
+        var encoder = await encoderSelector.SelectAsync(ct);
 
         for (int attempt = 0; attempt < VideoPlanner.MaxAttempts; attempt++)
         {
@@ -36,32 +34,18 @@ internal sealed class VideoCompressor(IFfmpegRunner runner) : IVideoCompressor
             }
 
             string attemptLabel = attempt == 0 ? "" : $"Attempt {attempt + 1} — ";
-            bool reuseStats = statsPlan is not null && plan.SameVideoChainAs(statsPlan);
 
-            if (!reuseStats)
-            {
-                // Keep the bar animated (indeterminate) from the instant the encoder is
-                // spawned — the first real -progress packet may be seconds away on a big file.
-                progress.Report(new CompressionProgress(-1, $"{attemptLabel}Preparing…"));
-
-                var pass1Args = FfmpegArgsBuilder.BuildVideoPass1Args(
-                    media.FilePath, plan, passLogPrefix, nullSink);
-                var pass1Result = await runner.RunFfmpegAsync(
-                    pass1Args, media.DurationSeconds,
-                    MapPass(progress, media, basePercent: 0, $"{attemptLabel}Pass 1 of 2"),
-                    ct);
-                ThrowIfFailed(pass1Result, "pass 1");
-                statsPlan = plan;
-            }
+            // Keep the bar animated from the instant the encoder is spawned — the first real
+            // -progress packet can be a second or two away while the encoder/GPU spins up.
+            progress.Report(new CompressionProgress(-1, $"{attemptLabel}Preparing…"));
 
             string output = Path.Combine(jobTempDir, $"out-a{attempt}.mp4");
-            var pass2Args = FfmpegArgsBuilder.BuildVideoPass2Args(
-                media.FilePath, plan, passLogPrefix, output);
-            var pass2Result = await runner.RunFfmpegAsync(
-                pass2Args, media.DurationSeconds,
-                MapPass(progress, media, basePercent: 50, $"{attemptLabel}Pass 2 of 2"),
+            var args = FfmpegArgsBuilder.BuildVideoArgs(media.FilePath, plan, encoder, output);
+            var result = await runner.RunFfmpegAsync(
+                args, media.DurationSeconds,
+                MapProgress(progress, media, $"{attemptLabel}Compressing"),
                 ct);
-            ThrowIfFailed(pass2Result, "pass 2");
+            ThrowIfFailed(result, "encoding");
 
             progress.Report(new CompressionProgress(99, "Verifying size…"));
             long actualBytes = new FileInfo(output).Length;
@@ -78,21 +62,21 @@ internal sealed class VideoCompressor(IFfmpegRunner runner) : IVideoCompressor
             "Try a slightly larger size preset.");
     }
 
-    private static IProgress<ProgressUpdate> MapPass(
-        IProgress<CompressionProgress> progress, MediaInfo media, int basePercent, string phase)
+    private static IProgress<ProgressUpdate> MapProgress(
+        IProgress<CompressionProgress> progress, MediaInfo media, string phase)
     {
         // Constructed on the caller's context; Progress<T> marshals to it automatically.
         return new Progress<ProgressUpdate>(update =>
         {
-            // While pass 1 warms up (encoder started, no measurable output yet) keep the bar
-            // marquee-animated instead of freezing it at a determinate 0%.
-            if (basePercent == 0 && update.Fraction <= 0 && !update.Ended)
+            // Until there's measurable output, keep the bar marquee-animated rather than
+            // freezing it at a determinate 0% while the encoder warms up.
+            if (update.Fraction <= 0 && !update.Ended)
             {
                 progress.Report(new CompressionProgress(-1, phase + "…"));
                 return;
             }
 
-            double percent = basePercent + update.Fraction * 50;
+            double percent = Math.Min(99, update.Fraction * 100);
             string text = phase;
             if (update.Speed is { } speed && media.DurationSeconds is { } duration && !update.Ended)
             {

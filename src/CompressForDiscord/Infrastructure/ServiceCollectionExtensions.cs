@@ -13,6 +13,7 @@ internal static class ServiceCollectionExtensions
             .AddSingleton<IFfmpegLocator, FfmpegLocator>()
             .AddSingleton<IFfmpegRunner, FfmpegRunner>()
             .AddSingleton<IMediaProber, MediaProber>()
+            .AddSingleton<IVideoEncoderSelector, VideoEncoderSelector>()
             .AddSingleton<IVideoCompressor, VideoCompressor>()
             .AddSingleton<IImageCompressor, ImageCompressor>()
             .AddSingleton<ICompressionOrchestrator, CompressionOrchestrator>()

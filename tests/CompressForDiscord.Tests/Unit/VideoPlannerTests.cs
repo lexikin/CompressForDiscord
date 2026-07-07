@@ -55,8 +55,9 @@ public sealed class VideoPlannerTests
 
         Assert.True(attempt1.VideoKbps < attempt0.VideoKbps);
         Assert.True(attempt2.VideoKbps < attempt1.VideoKbps);
-        // Same rung across margins here — pass-1 stats stay reusable.
-        Assert.True(attempt1.SameVideoChainAs(attempt0));
+        // Same rung across margins here — only the bitrate tightens.
+        Assert.Equal(attempt0.Width, attempt1.Width);
+        Assert.Equal(attempt0.Height, attempt1.Height);
     }
 
     [Fact]

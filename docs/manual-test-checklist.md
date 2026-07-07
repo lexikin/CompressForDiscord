@@ -5,7 +5,9 @@ Run before tagging a release. Platforms: **Windows 10**, **Windows 11 VM**, **Ub
 
 ## Core compression flow
 
-- [ ] Large mp4 (>50 MB) → right-click → Compress for Discord → progress advances (pass 1 → pass 2, ETA shown) → preview opens → **Ctrl+V into Discord uploads the mp4**
+- [ ] Large mp4 (>50 MB) → right-click → Compress for Discord → progress advances (ETA shown, taskbar button fills) → preview opens → **Ctrl+V into Discord uploads the mp4**
+- [ ] Progress bar animates immediately (no frozen 0% while the encoder spins up); Windows taskbar button shows the same progress
+- [ ] Video encodes on the GPU when present (log line `video encoder: NVENC/Quick Sync/AMF`); on a GPU-less machine the log shows `x264` and it still works
 - [ ] 4K 60 fps clip → output is downscaled + capped at 30 fps, still under limit
 - [ ] Animated GIF → mp4; plays looping & muted in preview
 - [ ] Static GIF → png
@@ -17,8 +19,7 @@ Run before tagging a release. Platforms: **Windows 10**, **Windows 11 VM**, **Ub
 
 ## Cancel & errors
 
-- [ ] Cancel during pass 1 → app exits fast, Task Manager/`ps` shows **no orphan ffmpeg**, `%TEMP%/CompressForDiscord` has no leftover job dir
-- [ ] Cancel during pass 2 → same
+- [ ] Cancel mid-encode → app exits fast, Task Manager/`ps` shows **no orphan ffmpeg**, `%TEMP%/CompressForDiscord` has no leftover job dir, taskbar progress clears
 - [ ] Progress window ✕ behaves as Cancel
 - [ ] Corrupt file renamed to .mp4 → "Couldn't read this file" with stderr details expandable
 - [ ] Audio-only .mp3 → unsupported-input dialog

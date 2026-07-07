@@ -20,7 +20,7 @@ public sealed class CompressionIntegrationTests : IDisposable
         var runner = new FfmpegRunner(new FfmpegLocator());
         return new CompressionOrchestrator(
             new MediaProber(runner),
-            new VideoCompressor(runner),
+            new VideoCompressor(runner, new VideoEncoderSelector(runner)),
             new ImageCompressor(runner));
     }
 

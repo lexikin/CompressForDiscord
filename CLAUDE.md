@@ -2,7 +2,7 @@
 
 Right-click media file → compress to just under Discord's upload limit → copy result file to
 clipboard → preview window. C# / .NET 10 / Avalonia 11. Videos+animated GIFs → H.264/AAC MP4
-(two-pass x264, speed-first); static images → PNG (downscale search).
+(single-pass, hardware-accelerated when available); static images → PNG (downscale search).
 
 ## Commands
 
@@ -26,12 +26,17 @@ pwsh packaging/scripts/make-icons.ps1         # regenerate committed icon assets
   API values; verify empirically before changing.
 - ffmpeg `-progress` quirk: `out_time_ms` is **microseconds**; `out_time_us` is preferred.
   PNG `-compression_level` is 0–9 (not 0–100).
-- Video encoder is x264 `-preset veryfast`, both passes — chosen 2026-07-06 when the user
-  prioritized speed over quality (VP9 history & measurements: commit 5165ded). x264 auto-lightens
-  pass 1; never add `-slow-firstpass`. Planner floors are x264-tuned (0.022 bpp, 50 kbps min).
-- Two-pass x264: the `-vf` chain must be byte-identical across passes; `-passlogfile` lives in
-  the per-job temp dir (`%TEMP%/CompressForDiscord/<guid>`), never next to the source.
-  Same-chain retries skip pass 1 (rate control rescales stats to any target bitrate).
+- Video path is **single-pass, hardware-first** (chosen 2026-07-06, speed over quality; VP9→x264
+  history at 5165ded, two-pass→single at THIS commit). `VideoEncoderSelector` picks the encoder by
+  *functionally probing* h264_nvenc → h264_qsv → h264_amf (a tiny lavfi encode — the `-encoders`
+  list ALWAYS shows them regardless of hardware, so never trust it), caching the result; falls back
+  to `libx264 -preset veryfast`. Only x264 gets an explicit preset; hardware keeps its own default.
+  Measured on the 6-core box (GTX 970 + UHD 630), 60 s 1080p→10 MB: two-pass x264 13 s/VMAF 94,
+  single-pass x264 7 s/84, QSV 8 s/86, NVENC 5 s/84. Rate control is `-b:v N -maxrate 1.5N -bufsize 2N`;
+  VBR imprecision on size is caught by the orchestrator's verify-and-retry loop (planner floors are
+  x264-tuned: 0.022 bpp, 50 kbps min). Encode artifacts live in `%TEMP%/CompressForDiscord/<guid>`.
+- The functional-probe fallback means a machine with no GPU (or a dead driver, RDP session, exhausted
+  NVENC session slots, or a bundled ffmpeg lacking the hw encoders) silently uses x264 — never fails.
 - `VideoView` (LibVLCSharp) is a NativeControlHost: **nothing can overlay it** (banner is its
   own grid row); attach `MediaPlayer` only after `Window.Opened`; detach + `Stop()`/`Dispose()`
   on a thread-pool thread (UI-thread stop deadlocks).
